@@ -744,7 +744,7 @@ class HtMsgMenu extends Polymer.TkLocalizerMixin(Polymer.Element) {
 	}
 
 	static get observers() {
-		return ['_inboxSelectionIndexChanged(inboxSelectionIndex)', '_sentboxSelectionIndexChanged(sentboxSelectionIndex)', '_invoiceSelectionIndexChanged(invoiceSelectionIndex)', '_flatrateinvoiceSelectionIndexChanged(flatrateinvoiceSelectionIndex)', '_checkForMedicalHouse(user)', '_trashSelectionIndexChanged(trashSelectionIndex)','_updateUnreadCount(messages)'];
+		return ['_inboxSelectionIndexChanged(inboxSelectionIndex)', '_sentboxSelectionIndexChanged(sentboxSelectionIndex)', '_invoiceSelectionIndexChanged(invoiceSelectionIndex)', '_flatrateinvoiceSelectionIndexChanged(flatrateinvoiceSelectionIndex)', '_checkForMedicalHouse(user)', '_trashSelectionIndexChanged(trashSelectionIndex)','_updateUnreadCount(messages)','_isConnectedToEhbox(api.tokenId)'];
 	}
 
 	constructor() {
