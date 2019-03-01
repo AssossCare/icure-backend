@@ -166,7 +166,8 @@
             }
             .resInfos .indicator {
                 font-size: .85em;
-                text-align: right;
+                display: flex;
+                justify-content: space-between;
             }
 
             pre.result {
@@ -297,16 +298,52 @@
         </template>
 
         <template is="dom-if" if="[[isLabOrProtocol]]">
+            <template is="dom-repeat" items="[[labOrProtocolContent]]" as="resInfo">
             <paper-card class="pat-details-card">
                 <template is="dom-if" if="[[!isPatDetail]]">
-                    <paper-icon-button id="assign-ico-lab" class="assign-ico" icon="assignment-returned" on-tap="openSuggestions"  document$="[[item]]"></paper-icon-button>
-                    <paper-tooltip for="assign-ico-lab" position="left">[[localize('assign_to_pat','Assign to a patient',language)]]</paper-tooltip>
+                    <paper-icon-button id="assign-ico-lab-[[resInfo.documentId]]" class="assign-ico" icon="assignment-ind" on-tap="openSuggestions"  data-item$="[[resInfo]]"></paper-icon-button>
+                    <paper-tooltip for="assign-ico-lab-[[resInfo.documentId]]" position="left">[[localize('assign_to_pat','Assign to a patient',language)]]</paper-tooltip>
                 </template>
                 <span class="title">[[_title(document.name, title)]]</span>
-                <template is="dom-if" if="[[unassigned.length]]">
-                    <paper-button id="patients-importBtn" class="assignToPat" on-tap="openSuggestions" document$="[[item]]">
-                        [[localize('set_attach','Set attachment',language)]] <iron-icon id="patients-icon" icon="assignment-ind"></iron-icon>
-                    </paper-button>
+                <!--<template is="dom-if" if="[[unassigned.length]]">-->
+                    <!--<paper-button id="patients-importBtn" class="assignToPat" on-tap="openSuggestions" document$="[[item]]">-->
+                        <!--[[localize('set_attach','Set attachment',language)]] <iron-icon id="patients-icon" icon="assignment-ind"></iron-icon>-->
+                    <!--</paper-button>-->
+                <!--</template>-->
+                <div class="resInfos">
+                    <h4>[[resInfo.sex]]. [[resInfo.firstName]] [[resInfo.lastName]]</h4>
+                    <div class="line"><b class="label">[[localize('document','Document',language)]]</b><span>[[resInfo.protocol]] - [[resInfo.labo]]</span></div>
+                    <div class="line"><b class="label">[[localize('date','Date',language)]]</b><span>[[_formatDate(resInfo.demandDate)]]</span></div>
+                        <div class="indicator">
+                            <div>
+                                <template is="dom-if" if="[[_isLabAssigned(resInfo.protocol)]]">[[localize('assigned','Assigned',language)]]</template>
+                                <template is="dom-if" if="[[!_isLabAssigned(resInfo.protocol)]]">[[localize('unassigned','Unassigned',language)]]</template>
+                            </div>
+                            <div>
+                                <template is="dom-if" if="[[resInfo.complete]]">
+                                    <iron-icon icon="check"></iron-icon> [[localize('com_res','Complete result',language)]]
+                                </template>
+                                <template is="dom-if" if="[[!resInfo.complete]]">
+                                    <iron-icon icon="info"></iron-icon> [[localize('inc_res','Incomplete result',language)]]
+                                </template>
+                            </div>
+                        </div>
+                </div>
+                <template is="dom-if" if="[[_moreThan2(resInfo.services)]]">
+                    <ht-services-list id="dynamicallyListForm" api="[[api]]" user="[[user]]" contacts="[[_wrap(resInfo)]]" i18n="[[i18n]]" language="[[language]]" resources="[[resources]]"></ht-services-list>
+                </template>
+                <template is="dom-if" if="[[!_moreThan2(resInfo.services)]]">
+                    <template is="dom-if" if="[[_serviceDescription(resInfo.services.1)]]">
+                        <div class="line-flex">
+                            <div class="label">[[_serviceDescription(resInfo.services.0)]]</div>
+                            <pre class="result">[[_serviceDescription(resInfo.services.1)]]</pre>
+                        </div>
+                    </template>
+                    <template is="dom-if" if="[[!_serviceDescription(resInfo.services.1)]]">
+                        <div class="line-flex">
+                            <pre class="result">[[_serviceDescription(resInfo.services.0)]]</pre>
+                        </div>
+                    </template>
                 </template>
                 <div class="pointers-line">
                     <template is="dom-if" if="[[downloadable]]">
@@ -320,36 +357,8 @@
                         </paper-button>
                     </template>
                 </div>
-                <template is="dom-repeat" items="[[labOrProtocolContent]]" as="resInfo">
-                    <div class="resInfos">
-                        <h4>[[resInfo.sex]]. [[resInfo.firstName]] [[resInfo.lastName]]</h4>
-                        <div class="line"><b class="label">[[localize('document','Document',language)]]</b><span>[[resInfo.protocol]] - [[resInfo.labo]]</span></div>
-                        <div class="line"><b class="label">[[localize('date','Date',language)]]</b><span>[[_formatDate(resInfo.demandDate)]]</span></div>
-                        <template is="dom-if" if="[[resInfo.complete]]">
-                            <div class="indicator"><iron-icon icon="check"></iron-icon> [[localize('com_res','Complete result',language)]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!resInfo.complete]]">
-                            <div class="indicator"><iron-icon icon="info"></iron-icon> [[localize('inc_res','Incomplete result',language)]]</div>
-                        </template>
-                    </div>
-                    <template is="dom-if" if="[[_moreThan2(resInfo.services)]]">
-                        <ht-services-list id="dynamicallyListForm" api="[[api]]" user="[[user]]" contacts="[[_wrap(resInfo)]]" i18n="[[i18n]]" language="[[language]]" resources="[[resources]]"></ht-services-list>
-                    </template>
-                    <template is="dom-if" if="[[!_moreThan2(resInfo.services)]]">
-                        <template is="dom-if" if="[[_serviceDescription(resInfo.services.1)]]">
-                            <div class="line-flex">
-                                <div class="label">[[_serviceDescription(resInfo.services.0)]]</div>
-                                <pre class="result">[[_serviceDescription(resInfo.services.1)]]</pre>
-                            </div>
-                        </template>
-                        <template is="dom-if" if="[[!_serviceDescription(resInfo.services.1)]]">
-                            <div class="line-flex">
-                                <pre class="result">[[_serviceDescription(resInfo.services.0)]]</pre>
-                            </div>
-                        </template>
-                    </template>
-                </template>
             </paper-card>
+            </template>
         </template>
 
     </template>
@@ -414,9 +423,8 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
                 type: Boolean,
                 value: true
             },
-            unassigned: {
-			    type: Object,
-                value: []
+            unassignedResults: {
+			    type: Array
             },
             isPatDetail: {
 			    type: Boolean,
@@ -437,8 +445,17 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
 	    return name && name !== 'No title' ? name : fallback
     }
 
-    openSuggestions() {
-	    this.dispatchEvent(new CustomEvent('open-suggestions', {detail: {documentId: this.documentId}, bubbles: true, composed: true}))
+    openSuggestions(e) {
+	    const res = e.target.dataset.item ? JSON.parse(e.target.dataset.item) : {}
+	    this.dispatchEvent(new CustomEvent('open-suggestions', {detail: {resInfo: res, documentBeingAssigned: this.document}, bubbles: true, composed: true}))
+    }
+
+    _isLabAssigned(protocol) {
+	    if (this.unassignedResults && this.unassignedResults.length) {
+	        return this.unassignedResults.indexOf(protocol) == -1 ? true : false // is not in unassigned
+        } else {
+	        return false
+        }
     }
 
 	_documentIdChanged() {

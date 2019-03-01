@@ -377,8 +377,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     border-radius: 50%;
                     background: var(--app-status-color-ok);
                 }
-                .labicon.unassigned-true {
+                .labicon.assignstatus-nok {
                     background: var(--app-status-color-nok);
+                }
+                .labicon.assignstatus-pending {
+                    background: var(--app-status-color-pending);
                 }
                 .actions .labicon {
                     margin: 8px;
@@ -609,19 +612,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                                 <vaadin-checkbox on-checked-changed="_itemSelected" data-item$="[[item]]" class="checkbox"></vaadin-checkbox>
                             </template>
                         </vaadin-grid-column>
-                        <vaadin-grid-column flex-grow="0" width="44px">
+                        <vaadin-grid-column flex-grow="0" width="48px">
                             <template class="header">
                                 <iron-icon id="hasLab-header" icon="icons:assignment"></iron-icon>
                                 <paper-tooltip position="right" for="hasLab-header">[[localize('boxtitle.labResult','Lab results',language)]]</paper-tooltip>
                             </template>
                             <template>
                                 <template is="dom-if" if="[[hasLabResult(item)]]">
-                                    <div id="hasLab-[[item.id]]" class$="labicon unassigned-[[isUnassigned(item)]]"></div>
+                                    <div id="hasLab-[[item.id]]"><span class$="labicon assignstatus-[[assignStatus(item)]]"></span><span class$="assigncount-[[assignStatus(item)]]">[[labCount(item)]]</span></div>
                                     <template is="dom-if" if="[[isUnassigned(item)]]">
-                                        <paper-tooltip position="right" for="hasLab-[[item.id]]">[[localize('un_attachs','Unassigned Lab Results',language)]]</paper-tooltip>
+                                        <paper-tooltip position="right" for="hasLab-[[item.id]]" style="white-space:nowrap;">[[localize('un_attachs','Unassigned Lab Results',language)]]</paper-tooltip>
                                     </template>
                                     <template is="dom-if" if="[[!isUnassigned(item)]]">
-                                        <paper-tooltip position="right" for="hasLab-[[item.id]]">[[localize('boxtitle.labResult','Lab results',language)]]</paper-tooltip>
+                                        <paper-tooltip position="right" for="hasLab-[[item.id]]" style="white-space:nowrap;">[[localize('boxtitle.labResult','Lab results',language)]]</paper-tooltip>
                                     </template>
                                 </template>
                             </template>
@@ -953,8 +956,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     if (!this.pages.length) this.push('pages',1)
                     let start = (page-1) * pageSize;
                     let end = page * pageSize;
-                    this.set('pageStart', start || 0)
-                    this.set('pageEnd', end ||pageSize)
+                    this.set('pageStart', start+1 || 0) // dont say 0 - 50
+                    this.set('pageEnd', end > messages.length ? messages.length : end ||pageSize)
                     grid.items = messages.slice(start, end);
                     // pagination ends here
                     this._scrollToTop()
@@ -1022,6 +1025,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }
             isUnassigned(m) {
                 return (m.unassignedResults && (m.unassignedResults.length > 0)) ? true : false
+            }
+
+            assignStatus(m) {
+                if (m) {
+                    if (m.unassignedResults && m.assignedResults) {
+                        if (Object.keys(m.assignedResults).length) { // there is assigned
+                            return m.unassignedResults.length ? 'pending' : 'ok' // still have unassigned ??
+                        } else { // there is no assigned
+                            return m.unassignedResults.length ? 'nok' : null // still have unassigned ??
+                        }
+                    }
+                }
+            }
+
+            labCount(m) {
+                if (m) {
+                    if (m.unassignedResults && m.assignedResults) {
+                        const total = Object.keys(m.assignedResults).length + m.unassignedResults.length
+                        const assigned = Object.keys(m.assignedResults).length
+                        return ` ${assigned}/${total}`
+                    }
+                }
             }
 
             getUnreadEmail() {
