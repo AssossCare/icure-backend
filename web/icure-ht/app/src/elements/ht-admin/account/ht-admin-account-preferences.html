@@ -233,12 +233,58 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 color: var(--app-text-color);
             }
 
+            .configs-box {
+                background: var(--app-background-color-dark);
+                padding: 16px;
+                border-radius: 8px;
+            }
+
+            #preferredHub {
+                padding: 0 0 8px 0;
+            }
+
             .flex{
                 flex: 1;
             }
-
-            .line {
+            .justify-between {
+                justify-content: space-between;
+            }
+            .justify-around {
+                justify-content: space-around;
+            }
+            .line, .row {
                 display: flex;
+                flex-direction: row;
+            }
+            .col {
+                display: flex;
+                flex-direction: column;
+                padding: 0 4px;
+            }
+
+            @media screen and (max-width: 480px) {
+                :host {
+                    position: fixed;
+                    top: 64px;
+                    height: calc(100vh - 64px);
+                    width: 100vw;
+                    overflow-y: auto;
+                    padding-bottom: 8px;
+                }
+                .configs-box {
+                    flex-direction: column;
+                }
+            }
+
+            @media screen and (max-height: 800px) and (max-width: 1025px) {
+                :host {
+                    position: fixed;
+                    top: 64px;
+                    height: calc(100vh - 64px);
+                    width: 100vw;
+                    overflow-y: auto;
+                    padding-bottom: 8px;
+                }
             }
 
         </style>
@@ -246,32 +292,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <div class="users-panel">
             <h4>[[localize('my_pro', 'My profil', language)]] - [[localize('acc_prefs', 'Preferences', language)]]</h4>
 
-            <div>
-                <h5>Dossier patient</h5>
-                <vaadin-checkbox checked="{{openPostItAuto}}">[[localize('open_post_it','Open post-it with patient folder',language)]]</vaadin-checkbox>
-            </div>
+            <div class="row justify-between configs-box">
+                <div class="col">
+                    <h5>Dossier patient</h5>
+                    <vaadin-checkbox checked="{{openPostItAuto}}">[[localize('open_post_it','Open post-it with patient folder',language)]]</vaadin-checkbox>
+                </div>
 
 
-            <div>
-                <h5>Ehbox</h5>
-                <vaadin-checkbox checked="{{receiveMailAuto}}">[[localize('auto_ehbox','Receive mails automatically',language)]]</vaadin-checkbox>
-                <vaadin-checkbox checked="{{assignMailAuto}}">[[localize('','Assign mails automatically',language)]]</vaadin-checkbox>
-            </div>
+                <div class="col">
+                    <h5>Ehbox</h5>
+                    <vaadin-checkbox checked="{{receiveMailAuto}}">[[localize('auto_ehbox','Receive mails automatically',language)]]</vaadin-checkbox>
+                    <vaadin-checkbox checked="{{assignMailAuto}}">[[localize('','Assign mails automatically',language)]]</vaadin-checkbox>
+                </div>
 
-            <div>
-                <h5>Hubs</h5>
-                <paper-dropdown-menu id="preferredHub" label="[[localize('pre_hub','Preferred hub',language)]]">
-                    <paper-listbox slot="dropdown-content" attr-for-selected="name" selected="{{userPreferredHub}}">
-                        <paper-item name="rsb">[[localize('rsw','RSB',language)]]</paper-item>
-                        <paper-item name="rsw">[[localize('rsb','RSW',language)]]</paper-item>
-                        <paper-item name="vitalink">[[localize('vitalink','Vitalink',language)]]</paper-item>
-                    </paper-listbox>
-                </paper-dropdown-menu>
+                <div class="col">
+                    <h5>Hubs</h5>
+                    <paper-dropdown-menu id="preferredHub" label="[[localize('pre_hub','Preferred hub',language)]]">
+                        <paper-listbox slot="dropdown-content" attr-for-selected="name" selected="{{userPreferredHub}}">
+                            <paper-item name="rsb">[[localize('rsw','RSB',language)]]</paper-item>
+                            <paper-item name="rsw">[[localize('rsb','RSW',language)]]</paper-item>
+                            <paper-item name="vitalink">[[localize('vitalink','Vitalink',language)]]</paper-item>
+                        </paper-listbox>
+                    </paper-dropdown-menu>
 
-                <paper-radio-group selected="{{userEHealthEnv}}">
-                    <paper-radio-button name="acc">[[localize('acc','Acceptance',language)]]</paper-radio-button>
-                    <paper-radio-button name="prd">[[localize('prd','Production',language)]]</paper-radio-button>
-                </paper-radio-group>
+                    <paper-radio-group selected="{{userEHealthEnv}}" class="row justify-around">
+                        <paper-radio-button name="acc">[[localize('acc','Acceptance',language)]]</paper-radio-button>
+                        <paper-radio-button name="prd">[[localize('prd','Production',language)]]</paper-radio-button>
+                    </paper-radio-group>
+                </div>
             </div>
 
             <div>
