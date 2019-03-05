@@ -203,6 +203,20 @@
                 background: var(--app-secondary-color);
                 border-radius: 50%;
             }
+
+            div.assignStatus {
+                border-radius: 16px;
+                padding: 0 8px 0 2px;
+            }
+            div.assignStatus.green {
+                background: var(--app-status-color-ok);
+            }
+            div.assignStatus.red {
+                background: var(--app-status-color-pending);
+            }
+            iron-icon.red {
+                color: var(--app-status-color-nok);
+            }
 		</style>
         <template is="dom-if" if="[[!isLabOrProtocol]]">
             <paper-card class="pat-details-card">
@@ -316,8 +330,8 @@
                     <div class="line"><b class="label">[[localize('date','Date',language)]]</b><span>[[_formatDate(resInfo.demandDate)]]</span></div>
                         <div class="indicator">
                             <div>
-                                <template is="dom-if" if="[[_isLabAssigned(resInfo.protocol)]]">[[localize('assigned','Assigned',language)]]</template>
-                                <template is="dom-if" if="[[!_isLabAssigned(resInfo.protocol)]]">[[localize('unassigned','Unassigned',language)]]</template>
+                                <template is="dom-if" if="[[_isLabAssigned(resInfo.protocol)]]"><div class="assignStatus green"><iron-icon icon="check"></iron-icon>  [[localize('assigned','Assigned',language)]]</div></template>
+                                <template is="dom-if" if="[[!_isLabAssigned(resInfo.protocol)]]"><div class="assignStatus red"><iron-icon icon="clear" class="red"></iron-icon> [[localize('unassigned','Unassigned',language)]]</div></template>
                             </div>
                             <div>
                                 <template is="dom-if" if="[[resInfo.complete]]">

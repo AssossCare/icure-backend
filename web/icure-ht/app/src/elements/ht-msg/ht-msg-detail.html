@@ -731,30 +731,38 @@
             #import-suggest {
                 position: fixed;
                 display: flex;
-                top: calc(50vh + 97px);
-                left: calc(16% + 20px);
-                width: calc(80vw - 12px);
-                height: auto;
-                max-height: calc(100vh - 97px);
-                transform: translateY(calc(-50% - 64px));
-                justify-content: flex-end;
+                top: 70px;
+                right: 20px;
+                left: initial;
+                width: 81%;
+                height: calc(100vh - 112px);
+                justify-content: flex-start;
                 background: #fff;
                 padding: 8px;
                 border: 1px solid var(--app-background-color-dark);
-                box-shadow: var(--app-shadow-elevation-2);
+                box-shadow: var(--app-shadow-elevation-1);
                 border-radius: 4px;
                 z-index: 999;
                 flex-direction: column;
                 margin: 0 auto;
             }
 
-            #import-suggest .twocol {
-                display: grid;
-                grid-template-columns: 50% 50%;
+            #import-suggest .modal-line {
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+            }
+            #import-suggest .laboInfo {
+                background: var(--app-background-color-dark);
+                border-radius: 4px;
+                padding: 8px;
+            }
+            #import-suggest .modal-line > .pat-box {
+                flex-grow: 1;
             }
 
             #import-suggest h5 {
-                margin: 0 auto 4px auto;
+                margin: 8px auto;
                 text-align: center;
             }
 
@@ -783,7 +791,6 @@
             }
             .scrollbox.laboInfo {
                 margin-right: 8px; /* TODO : 8px when labresult done*/
-                padding: 0 !important;
             }
             .scrollbox.patlist .checkbox-item {
                 border-bottom: 1px solid var(--app-background-color-darker);
@@ -823,36 +830,18 @@
                 width: 100%;
             }
 
-            .laboInfo .unassigned {
-                line-height: 100%;
-                display: flex;
-                flex-direction: column;
-                border-top: 1px solid var(--app-background-color-darker);
-                text-align: left;
-                padding: 8px;
+            .laboInfo .pat-name {
+                font-weight: bolder;
             }
-            .laboInfo .unassigned:first-child {
-                border: none;
-            }
-
-            .laboInfo .unassigned .pat-name {
-                font-weight: bold;
-            }
-            .laboInfo .unassigned iron-icon {
-                width: 18px;
-                margin-left: 4px;
-            }
-            .laboInfo .unassigned small {
+            .laboInfo small {
                 width: 100%;
                 display: block;
             }
-            .laboInfo .unassigned .labo-info {
+            .laboInfo .labo-info {
                 margin: 4px 0;
             }
-            .labo-info .labo-name {}
-            .laboInfo .unassigned .demand-date {
-                text-align: right;
-                font-size: .75em;
+            .laboInfo .demand-date {
+                font-style: italic;
             }
 
             .pointer:hover,
@@ -909,9 +898,11 @@
                 }
 
                 #import-suggest {
-                    left: 50vw;
-                    transform: translateY(calc(-50% - 64px)) translateX(-50%);
-                    width: 90vw;
+                    width: 100vw;
+                    right: 0;
+                    left: 0;
+                    box-sizing: border-box;
+                    height: calc(100vh - 94px);
                 }
 
                 .read-txt {
@@ -931,16 +922,9 @@
                     max-height: 50vh;
                 }
 
-                #import-suggest .twocol {
-                    display: flex;
-                    flex-direction: column;
-                }
-
                 #import-suggest .scrollbox {
                     height: 128px;
                 }
-
-                #import-suggest .laboInfo {margin-right: 0;}
             }
 
 		</style>
@@ -1045,17 +1029,16 @@
                             <h4>[[localize('set_attach','Set attachment',language)]]</h4> <ht-spinner class="patlist-spinner" active="[[isLoadingPatsSuggest]]"></ht-spinner>
                         </div>
                         <template is="dom-if" if="[[resInfoBeingAssigned]]">
-                        <div class="twocol">
+                        <div class="modal-line">
                             <div>
                                 <h5>[[localize('un_attachs','Unassigned results',language)]]</h5>
                                 <div class="laboInfo">
-                                    <div class="pat-name">[[resInfoBeingAssigned.sex]]. [[resInfoBeingAssigned.lastName]] [[resInfoBeingAssigned.firstName]] [[resInfoBeingAssigned.dateOfBirtth]]</div>
-                                    <div class="labo-info labo-name"><b>[[resInfoBeingAssigned.labo]]</b></div>
-                                    <div>[[localize('prot','Protocol',language)]]: [[resInfoBeingAssigned.protocol]]</div>
-                                    <div>[[localize('date','Date',language)]] : [[resInfoBeingAssigned.formatedDemandDate]]</div>
+                                    <div class="pat-name">[[localize('inv_pat','Patient',language)]] : [[resInfoBeingAssigned.sex]]. [[resInfoBeingAssigned.lastName]] [[resInfoBeingAssigned.firstName]] [[resInfoBeingAssigned.dateOfBirtth]]</div>
+                                    <div class="labo-info labo-name"><b>[[localize('cdItemLab','Laboratory',language)]]</b> : [[resInfoBeingAssigned.protocol]] - [[resInfoBeingAssigned.labo]]</div>
+                                    <div class="demand-date">[[localize('date','Date',language)]] : [[resInfoBeingAssigned.formatedDemandDate]]</div>
                                 </div>
                             </div>
-                            <div>
+                            <div class="pat-box">
                                 <h5>[[patsLng]] [[localize('found_matches','Found matches',language)]] [[selectName]]</h5>
                                 <div class="scrollbox patlist">
                                     <template is="dom-if" if="[[!manualAssign]]">
@@ -1080,45 +1063,6 @@
                             </div>
                         </div>
                         </template>
-                        <!--<template is="dom-if" if="[[!resInfoBeingAssigned.unimportedPats.length]]">-->
-                        <!--<div>-->
-                            <!--<h5>[[patsLng]] [[localize('poss_matches','Possible matches',language)]] [[selectName]]</h5>-->
-                            <!--<div class="scrollbox patlist">-->
-                                <!--<template is="dom-if" if="[[!manualAssign]]">-->
-                                    <!--<paper-button class="search-patients" on-tap="toggleManualAssign"><iron-icon icon="perm-identity"></iron-icon> [[localize('sch_pats','Search patients',language)]]</paper-button>-->
-                                <!--</template>-->
-                                <!--<template is="dom-if" if="[[manualAssign]]">-->
-                                    <!--<div>-->
-                                        <!--<div class="line">-->
-                                            <!--<paper-input class="search-patients" value="{{searchPatValue}}" label="[[localize('pati','Patient',language)]]"></paper-input><iron-icon class="search-patients" icon="close" on-tap="toggleManualAssign" disabled="[[isLoadingPatsSuggest]]"></iron-icon>-->
-                                        <!--</div>-->
-                                    <!--</div>-->
-                                <!--</template>-->
-                                <!--<template is="dom-repeat" items="[[toImportPatsSuggestions]]">-->
-                                    <!--<paper-checkbox class="checkbox-item" on-iron-change="_getPatsFromCheckbox" data-item$="[[item]]"><b>[[item.lastName]] [[item.firstName]]</b><br/>[[localize('dat_of_bir','Date of birth',language)]]: [[item.dateOfBirth]]<br/>SSIN: [[item.ssin]]</paper-checkbox>-->
-                                <!--</template>-->
-                                <!--<template is="dom-if" if="[[toImportPatsSearch.length]]">-->
-                                    <!--<template is="dom-repeat" items="[[toImportPatsSearch]]">-->
-                                        <!--<paper-checkbox class="checkbox-item" on-iron-change="_getPatsFromCheckbox" data-item$="[[item]]"><b>[[item.lastName]] [[item.firstName]]</b><br/>[[localize('dat_of_bir','Date of birth',language)]]: [[item.dateOfBirth]]<br/>SSIN: [[item.ssin]]</paper-checkbox>-->
-                                    <!--</template>-->
-                                <!--</template>-->
-                            <!--</div>-->
-                        <!--</div>-->
-                        <!--</template>-->
-                        <!--TODO : Get lab result -->
-                        <!--<template is="dom-if" if="[[toImportPatsSuggestions.length]]">-->
-                        <!--<div class="line lab-details noPortable">-->
-                        <!--<h4>Lab result</h4>-->
-                        <!--<div class="sheet">-->
-                        <!--<h5>[[docInfo.labo]]</h5>-->
-                        <!--<p><b>[[docInfo.lastName]] [[docInfo.firstName]] [[docInfo.sex]]</b></p>-->
-                        <!--<p>[[docInfo.documentId]] - [[docInfo.formatedDemandDate]] - [[docInfo.protocol]]</p>-->
-                        <!--<p><small>[[docInfo.engine]]</small></p>-->
-                        <!--<p>[[docInfo]]</p>-->
-                        <!--<p>[[thisMsg]]</p>-->
-                        <!--</div>-->
-                        <!--</div>-->
-                        <!--</template>-->
                         <div class="line save-line">
                             <paper-button class="modal-button--cancel" on-tap="closeSuggestions">
                                 [[localize('can','Cancel',language)]]
@@ -1453,9 +1397,10 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
     openSuggestions(e) {
 	    const resInfo = e.detail.resInfo || {}
 	    const documentBeingAssigned = e.detail.documentBeingAssigned || {}
-        console.log('res',resInfo)
+        // console.log('res',resInfo)
         if(!this.assignModal) {
             this.set('documentBeingAssigned',documentBeingAssigned)
+            resInfo.formatedDemandDate = this.api.moment(resInfo.demandDate).format('DD/MM/YYYY hh:mm')
             this.set('resInfoBeingAssigned', resInfo)
             this.set('assignModal',true)
             this.set('targetPats',[])
