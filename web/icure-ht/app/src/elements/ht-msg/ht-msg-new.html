@@ -632,7 +632,7 @@
                                     <div class="cell">
                                         <vaadin-combo-box class="type-to" id="type-To" items="[[type]]" value="NIHII" required error-message="This field is required"
                                                           label="[[localize('sch_by', 'Search by', language)]]" selected-item="{{recipientType}}"></vaadin-combo-box>
-                                        <vaadin-combo-box id="newMsg-To" label="[[localize('rec','Destinataire',language)]]" filter="{{recipientFilter}}" filtered-items="[[hcpList]]" item-label-path="displayName"
+                                        <vaadin-combo-box id="newMsg-To" label="[[localize('rec','Recipient',language)]]" filter="{{recipientFilter}}" filtered-items="[[hcpList]]" item-label-path="displayName"
                                                           allow-custom-value on-change="_AddDestinations">
                                             <template>[[item.displayName]]</template>
                                         </vaadin-combo-box>
