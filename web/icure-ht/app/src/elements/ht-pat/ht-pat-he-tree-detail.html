@@ -273,7 +273,7 @@
                 </div>
                 <div>
                     <div class="he-edit-btn-container">
-                        <paper-icon-button id="he-edit-btn-edit_[[getHeId(he)]]" class="he-edit-btn" icon="create" on-tap="_toggleEditHE"></paper-icon-button>
+                        <paper-icon-button id="he-edit-btn-edit_[[getHeId(he)]]" class="he-edit-btn" icon="create" on-tap="_edit"></paper-icon-button>
 
                         <template is="dom-if" if="[[isNotArchived(he)]]">
                             <paper-icon-button id="he-edit-btn-archive_[[getHeId(he)]]" class="he-edit-btn" icon="vaadin:safe" on-tap="_archive"></paper-icon-button>
@@ -380,17 +380,11 @@ class HtPatHeTreeDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
         styx.parent(e.target, el => el.tagName.toLowerCase() === 'paper-item').classList.toggle('opened');
     }
 
-    _toggleEditHE(e) {
+    _edit(e) {
         e.stopPropagation();
         e.preventDefault();
 
-        let parentElement = e.target.parentElement;
-        if (parentElement.classList.contains('open')) {
-            this.dispatchEvent(new CustomEvent('edit-he', { detail: { he: this.he } }));
-        } else {
-            parentElement.classList.add('open');
-            setTimeout(() => parentElement.classList.remove('open'), 4000);
-        }
+        this.dispatchEvent(new CustomEvent('edit-he', { detail: { he: this.he } }));
     }
 
     _archive(e) {
