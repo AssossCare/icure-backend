@@ -203,6 +203,20 @@
                 background: var(--app-secondary-color);
                 border-radius: 50%;
             }
+
+            div.assignStatus {
+                border-radius: 16px;
+                padding: 0 8px 0 2px;
+            }
+            div.assignStatus.green {
+                background: var(--app-status-color-ok);
+            }
+            div.assignStatus.red {
+                background: var(--app-status-color-pending);
+            }
+            iron-icon.red {
+                color: var(--app-status-color-nok);
+            }
 		</style>
         <template is="dom-if" if="[[!isLabOrProtocol]]">
             <paper-card class="pat-details-card">
@@ -266,15 +280,17 @@
                             <pre class="txt-container">[[attachmentContent]]</pre>
                         </template>
                         <div class="pointers-line">
-                            <template is="dom-if" if="[[downloadable]]">
-                                <paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>
-                                    [[localize('dl','Download',language)]] <paper-icon-button icon="file-download"></paper-icon-button>
-                                </paper-button>
-                            </template>
-                            <template is="dom-if" if="[[printable]]">
-                                <paper-button class="hoverpointer" on-tap="_print" to-print="[[item]]">
-                                    [[localize('print','Print',language)]] <paper-icon-button icon="print"></paper-icon-button>
-                                </paper-button>
+                            <template is="dom-if" if="[[!_isEqual(document.documentLocation,'body')]]">
+                                <template is="dom-if" if="[[downloadable]]">
+                                    <paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>
+                                        [[localize('dl','Download',language)]] <paper-icon-button icon="file-download"></paper-icon-button>
+                                    </paper-button>
+                                </template>
+                                <template is="dom-if" if="[[printable]]">
+                                    <paper-button class="hoverpointer" on-tap="_print" to-print="[[item]]">
+                                        [[localize('print','Print',language)]] <paper-icon-button icon="print"></paper-icon-button>
+                                    </paper-button>
+                                </template>
                             </template>
                         </div>
                     </template>
@@ -301,23 +317,19 @@
             <template is="dom-repeat" items="[[labOrProtocolContent]]" as="resInfo">
             <paper-card class="pat-details-card">
                 <template is="dom-if" if="[[!isPatDetail]]">
-                    <paper-icon-button id="assign-ico-lab-[[resInfo.documentId]]" class="assign-ico" icon="assignment-ind" on-tap="openSuggestions"  data-item$="[[resInfo]]"></paper-icon-button>
-                    <paper-tooltip for="assign-ico-lab-[[resInfo.documentId]]" position="left">[[localize('assign_to_pat','Assign to a patient',language)]]</paper-tooltip>
+                    <paper-icon-button id="assign-ico-lab-[[resInfo.protocol]]" class="assign-ico" icon="assignment-ind" on-tap="openSuggestions" data-item$="[[resInfo]]"></paper-icon-button>
+                    <paper-tooltip for="assign-ico-lab-[[resInfo.protocol]]" position="left">[[localize('assign_to_pat','Assign to a patient',language)]]</paper-tooltip>
                 </template>
-                <span class="title">[[_title(document.name, title)]]</span>
-                <!--<template is="dom-if" if="[[unassigned.length]]">-->
-                    <!--<paper-button id="patients-importBtn" class="assignToPat" on-tap="openSuggestions" document$="[[item]]">-->
-                        <!--[[localize('set_attach','Set attachment',language)]] <iron-icon id="patients-icon" icon="assignment-ind"></iron-icon>-->
-                    <!--</paper-button>-->
-                <!--</template>-->
+                <span class="title">[[localize('cdItemResult','Results',language)]]</span>
                 <div class="resInfos">
-                    <h4>[[resInfo.sex]]. [[resInfo.firstName]] [[resInfo.lastName]]</h4>
+                    <h4>[[resInfo.sex]]. [[resInfo.lastName]] [[resInfo.firstName]]</h4>
                     <div class="line"><b class="label">[[localize('document','Document',language)]]</b><span>[[resInfo.protocol]] - [[resInfo.labo]]</span></div>
                     <div class="line"><b class="label">[[localize('date','Date',language)]]</b><span>[[_formatDate(resInfo.demandDate)]]</span></div>
+                    <div class="line"><b class="label">[[localize('file','Fichier',language)]]</b><span>[[_title(document.name, title)]]</span></div>
                         <div class="indicator">
                             <div>
-                                <template is="dom-if" if="[[_isLabAssigned(resInfo.protocol)]]">[[localize('assigned','Assigned',language)]]</template>
-                                <template is="dom-if" if="[[!_isLabAssigned(resInfo.protocol)]]">[[localize('unassigned','Unassigned',language)]]</template>
+                                <template is="dom-if" if="[[_isLabAssigned(resInfo.protocol)]]"><div class="assignStatus green"><iron-icon icon="check"></iron-icon>  [[localize('assigned','Assigned',language)]]</div></template>
+                                <template is="dom-if" if="[[!_isLabAssigned(resInfo.protocol)]]"><div class="assignStatus red"><iron-icon icon="clear" class="red"></iron-icon> [[localize('unassigned','Unassigned',language)]]</div></template>
                             </div>
                             <div>
                                 <template is="dom-if" if="[[resInfo.complete]]">
