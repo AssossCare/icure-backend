@@ -107,17 +107,12 @@
 			}
 
 			.details-panel {
-				box-sizing: border-box;
-				grid-column: 3 / span 1;
-				grid-row: 1 / span 1;
 				background: var(--app-background-color-light);
-				display: flex;
 				overflow-y: auto;
-				flex-flow: column nowrap;
-				align-items: flex-start;
 				z-index: 0;
 				width: 100%;
                 flex: 1;
+				box-sizing: border-box;
 			}
 
 			.contact-title{
@@ -731,30 +726,38 @@
             #import-suggest {
                 position: fixed;
                 display: flex;
-                top: calc(50vh + 97px);
-                left: calc(16% + 20px);
-                width: calc(80vw - 12px);
-                height: auto;
-                max-height: calc(100vh - 97px);
-                transform: translateY(calc(-50% - 64px));
-                justify-content: flex-end;
+                top: 70px;
+                right: 20px;
+                left: initial;
+                width: 81%;
+                height: calc(100vh - 112px);
+                justify-content: flex-start;
                 background: #fff;
                 padding: 8px;
                 border: 1px solid var(--app-background-color-dark);
-                box-shadow: var(--app-shadow-elevation-2);
+                box-shadow: var(--app-shadow-elevation-1);
                 border-radius: 4px;
                 z-index: 999;
                 flex-direction: column;
                 margin: 0 auto;
             }
 
-            #import-suggest .twocol {
-                display: grid;
-                grid-template-columns: 50% 50%;
+            #import-suggest .modal-line {
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+            }
+            #import-suggest .laboInfo {
+                background: var(--app-background-color-dark);
+                border-radius: 4px;
+                padding: 8px;
+            }
+            #import-suggest .modal-line > .pat-box {
+                flex-grow: 1;
             }
 
             #import-suggest h5 {
-                margin: 0 auto 4px auto;
+                margin: 8px auto;
                 text-align: center;
             }
 
@@ -781,9 +784,8 @@
                 margin-bottom: 8px;
                 box-sizing: border-box;
             }
-            .scrollbox.labolist {
+            .scrollbox.laboInfo {
                 margin-right: 8px; /* TODO : 8px when labresult done*/
-                padding: 0 !important;
             }
             .scrollbox.patlist .checkbox-item {
                 border-bottom: 1px solid var(--app-background-color-darker);
@@ -823,36 +825,18 @@
                 width: 100%;
             }
 
-            .labolist .unassigned {
-                line-height: 100%;
-                display: flex;
-                flex-direction: column;
-                border-top: 1px solid var(--app-background-color-darker);
-                text-align: left;
-                padding: 8px;
+            .laboInfo .pat-name {
+                font-weight: bolder;
             }
-            .labolist .unassigned:first-child {
-                border: none;
-            }
-
-            .labolist .unassigned .pat-name {
-                font-weight: bold;
-            }
-            .labolist .unassigned iron-icon {
-                width: 18px;
-                margin-left: 4px;
-            }
-            .labolist .unassigned small {
+            .laboInfo small {
                 width: 100%;
                 display: block;
             }
-            .labolist .unassigned .labo-info {
+            .laboInfo .labo-info {
                 margin: 4px 0;
             }
-            .labo-info .labo-name {}
-            .labolist .unassigned .demand-date {
-                text-align: right;
-                font-size: .75em;
+            .laboInfo .demand-date {
+                font-style: italic;
             }
 
             .pointer:hover,
@@ -909,9 +893,11 @@
                 }
 
                 #import-suggest {
-                    left: 50vw;
-                    transform: translateY(calc(-50% - 64px)) translateX(-50%);
-                    width: 90vw;
+                    width: 100vw;
+                    right: 0;
+                    left: 0;
+                    box-sizing: border-box;
+                    height: calc(100vh - 94px);
                 }
 
                 .read-txt {
@@ -931,16 +917,9 @@
                     max-height: 50vh;
                 }
 
-                #import-suggest .twocol {
-                    display: flex;
-                    flex-direction: column;
-                }
-
                 #import-suggest .scrollbox {
                     height: 128px;
                 }
-
-                #import-suggest .labolist {margin-right: 0;}
             }
 
 		</style>
@@ -1034,7 +1013,7 @@
                     <template is="dom-if" if="[[!_isEqualTo(item.documentLocation,'body')]]">
                         <div class="layout-vertical annexe-card">
                             <dynamic-doc id="[[item.id]]" api="[[api]]" user="[[user]]" patient="[[patient]]" document-id="[[item.id]]" i18n="[[i18n]]" language="[[language]]"
-                                         resources="[[resources]]" title="[[item.label]]" downloadable="true" on-open-suggestions="openSuggestions" unassigned="[[item.unimportedPats]]"></dynamic-doc>
+                                         resources="[[resources]]" title="[[item.label]]" downloadable="true" on-open-suggestions="openSuggestions" unassigned-results="[[selectedMessage.unassignedResults]]"></dynamic-doc>
                         </div>
                     </template>
                 </template>
@@ -1044,31 +1023,17 @@
                         <div class="line">
                             <h4>[[localize('set_attach','Set attachment',language)]]</h4> <ht-spinner class="patlist-spinner" active="[[isLoadingPatsSuggest]]"></ht-spinner>
                         </div>
-                        <template is="dom-if" if="[[documentBeingAssigned.unimportedPats.length]]">
-                        <div class="twocol">
+                        <template is="dom-if" if="[[resInfoBeingAssigned]]">
+                        <div class="modal-line">
                             <div>
                                 <h5>[[localize('un_attachs','Unassigned results',language)]]</h5>
-                                <div class="scrollbox labolist">
-                                    <paper-listbox selected="{{selectedProtocol}}">
-                                        <template is="dom-repeat" items="[[documentBeingAssigned.unimportedPats]]">
-                                            <paper-item class="unassigned pointer">
-                                                <div class="line">
-                                                    <div class="icon">
-                                                        <iron-icon icon="assignment" width="18px"></iron-icon>
-                                                    </div>
-                                                    <div class="grow">
-                                                        <div class="pat-name">[[item.lastName]] [[item.firstName]] [[item.dateOfBirtth]]</div>
-                                                        <small class="labo-info labo-name"><b>[[item.labo]]</b></small>
-                                                        <small>[[localize('prot','Protocol',language)]]: [[item.protocol]]</small>
-                                                        <small>[[localize('date','Date',language)]] : [[item.formatedDemandDate]]</small>
-                                                    </div>
-                                                </div>
-                                            </paper-item>
-                                        </template>
-                                    </paper-listbox>
+                                <div class="laboInfo">
+                                    <div class="pat-name">[[localize('inv_pat','Patient',language)]] : [[resInfoBeingAssigned.sex]]. [[resInfoBeingAssigned.lastName]] [[resInfoBeingAssigned.firstName]] [[resInfoBeingAssigned.dateOfBirtth]]</div>
+                                    <div class="labo-info labo-name"><b>[[localize('cdItemLab','Laboratory',language)]]</b> : [[resInfoBeingAssigned.protocol]] - [[resInfoBeingAssigned.labo]]</div>
+                                    <div class="demand-date">[[localize('date','Date',language)]] : [[resInfoBeingAssigned.formatedDemandDate]]</div>
                                 </div>
                             </div>
-                            <div>
+                            <div class="pat-box">
                                 <h5>[[patsLng]] [[localize('found_matches','Found matches',language)]] [[selectName]]</h5>
                                 <div class="scrollbox patlist">
                                     <template is="dom-if" if="[[!manualAssign]]">
@@ -1093,45 +1058,6 @@
                             </div>
                         </div>
                         </template>
-                        <template is="dom-if" if="[[!documentBeingAssigned.unimportedPats.length]]">
-                        <div>
-                            <h5>[[patsLng]] [[localize('poss_matches','Possible matches',language)]] [[selectName]]</h5>
-                            <div class="scrollbox patlist">
-                                <template is="dom-if" if="[[!manualAssign]]">
-                                    <paper-button class="search-patients" on-tap="toggleManualAssign"><iron-icon icon="perm-identity"></iron-icon> [[localize('sch_pats','Search patients',language)]]</paper-button>
-                                </template>
-                                <template is="dom-if" if="[[manualAssign]]">
-                                    <div>
-                                        <div class="line">
-                                            <paper-input class="search-patients" value="{{searchPatValue}}" label="[[localize('pati','Patient',language)]]"></paper-input><iron-icon class="search-patients" icon="close" on-tap="toggleManualAssign" disabled="[[isLoadingPatsSuggest]]"></iron-icon>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template is="dom-repeat" items="[[toImportPatsSuggestions]]">
-                                    <paper-checkbox class="checkbox-item" on-iron-change="_getPatsFromCheckbox" data-item$="[[item]]"><b>[[item.lastName]] [[item.firstName]]</b><br/>[[localize('dat_of_bir','Date of birth',language)]]: [[item.dateOfBirth]]<br/>SSIN: [[item.ssin]]</paper-checkbox>
-                                </template>
-                                <template is="dom-if" if="[[toImportPatsSearch.length]]">
-                                    <template is="dom-repeat" items="[[toImportPatsSearch]]">
-                                        <paper-checkbox class="checkbox-item" on-iron-change="_getPatsFromCheckbox" data-item$="[[item]]"><b>[[item.lastName]] [[item.firstName]]</b><br/>[[localize('dat_of_bir','Date of birth',language)]]: [[item.dateOfBirth]]<br/>SSIN: [[item.ssin]]</paper-checkbox>
-                                    </template>
-                                </template>
-                            </div>
-                        </div>
-                        </template>
-                        <!--TODO : Get lab result -->
-                        <!--<template is="dom-if" if="[[toImportPatsSuggestions.length]]">-->
-                        <!--<div class="line lab-details noPortable">-->
-                        <!--<h4>Lab result</h4>-->
-                        <!--<div class="sheet">-->
-                        <!--<h5>[[docInfo.labo]]</h5>-->
-                        <!--<p><b>[[docInfo.lastName]] [[docInfo.firstName]] [[docInfo.sex]]</b></p>-->
-                        <!--<p>[[docInfo.documentId]] - [[docInfo.formatedDemandDate]] - [[docInfo.protocol]]</p>-->
-                        <!--<p><small>[[docInfo.engine]]</small></p>-->
-                        <!--<p>[[docInfo]]</p>-->
-                        <!--<p>[[thisDocument]]</p>-->
-                        <!--</div>-->
-                        <!--</div>-->
-                        <!--</template>-->
                         <div class="line save-line">
                             <paper-button class="modal-button--cancel" on-tap="closeSuggestions">
                                 [[localize('can','Cancel',language)]]
@@ -1230,7 +1156,7 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
 			    type: Array,
                 value: []
             },
-            thisDocument: {
+            thisMsg: {
 			    type: Object,
                 value: null
             },
@@ -1295,6 +1221,14 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
             },
             ehealthSession: {
                 type: Boolean
+            },
+            resInfoBeingAssigned: {
+			    type: Object,
+                value: null
+            },
+            documentBeingAssigned: {
+			    type: Object,
+                value: null
             }
 		};
 	}
@@ -1416,7 +1350,7 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
             this.set('unassignedResults',selMsg.unassignedResults)
             this.set('assignedResults',selMsg.assignedResults)
 			this.set('hasUnassignedResults',selMsg.unassignedResults ? selMsg.unassignedResults.length ? true : false : false)
-            this.set('thisDocument',selMsg)
+            this.set('thisMsg',selMsg)
             this.set('bodyDocument',{})
             this.set('svcToDisplay',[])
             if (selMsg.status) { // mark as read
@@ -1451,13 +1385,18 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
             this.set('isLoadingMessage', false)
             this.set('messages', null)
             this.set('hasUnassignedResults', false)
-            this.set('thisDocument', null)
+            this.set('thisMsg', null)
         }
 	}
 
     openSuggestions(e) {
+	    const resInfo = e.detail.resInfo || {}
+	    const documentBeingAssigned = e.detail.documentBeingAssigned || {}
+        // console.log('res',resInfo)
         if(!this.assignModal) {
-            this.set('documentBeingAssigned', this.selectedDocuments.find(d => d.id === e.detail.documentId))
+            this.set('documentBeingAssigned',documentBeingAssigned)
+            resInfo.formatedDemandDate = this.api.moment(resInfo.demandDate).format('DD/MM/YYYY hh:mm')
+            this.set('resInfoBeingAssigned', resInfo)
             this.set('assignModal',true)
             this.set('targetPats',[])
             this.set('manualAssign',false)
@@ -1469,7 +1408,8 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
     }
 
 	closeSuggestions() {
-        this.set('documentBeingAssigned', null)
+	    this.set('documentBeingAssigned',null)
+        this.set('resInfoBeingAssigned', null)
         this.set('targetPats',[])
         this.set('canAssign',false)
         this.set('toImportPatsSuggestions', [])
@@ -1506,7 +1446,7 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
                         document.docInfo = res
                         unassigned.forEach(u => {
                             if (u === res.protocol) {
-                                //res.formatedDemandDate = this.api.moment(res.demandDate).format('DD/MM/YYYY')
+                                res.formatedDemandDate = this.api.moment(res.demandDate).format('DD/MM/YYYY')
                                 (document.unimportedPats || (document.unimportedPats = [])).push(res)
                             }
                         })
@@ -1522,10 +1462,10 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
         console.log('_updateSuggestions')
         if (this.selectedProtocol > 0) {
             this.set('isLoadingPatsSuggest',true)
-            const unimportedPats = this.documentBeingAssigned && this.documentBeingAssigned.unimportedPats || []
+            const unimportedPats = this.resInfoBeingAssigned && this.resInfoBeingAssigned.unimportedPats || []
             const index = this.selectedProtocol
             this.set('selectName', unimportedPats[index] ? `(${unimportedPats[index].lastName})` : '')
-            this.set('docInfo', this.documentBeingAssigned && this.documentBeingAssigned.docInfo)
+            this.set('docInfo', this.resInfoBeingAssigned && this.resInfoBeingAssigned.docInfo)
             this.set('toImportPatsSuggestions',[])
             this.set('selectedPats',[])
             this.set('targetPats',[])
@@ -1558,27 +1498,27 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
         // console.log('_getPatsFromCheckbox',elem,'checked:'+checked,arr)
     }
 
-    _assignResultToSelected(selMsg,targets,document,docInfo) {
-        if (docInfo && docInfo.formatedDemandDate) delete docInfo.formatedDemandDate
-        if (selMsg && selMsg.unassignedResults && selMsg.unassignedResults.length && targets && docInfo && document) {
-            targets.map(thisPat=>{
+    _assignResultToSelected(patients,message,resInfo,document) {
+        if (resInfo && resInfo.formatedDemandDate) delete resInfo.formatedDemandDate
+        if (patients && resInfo && message && document) {
+            patients.map(thisPat=>{
                 // console.log('_assignResultToSelected',selMsg, targets, docInfo, document,thisPat)
                 this.api.contact().newInstance(this.user, thisPat, {
                     created: new Date().getTime(),
                     modified: new Date().getTime() ,
                     author: this.user.id,
                     responsible: this.user.healthcarePartyId,
-                    openingDate: moment(docInfo.demandDate).format('YYYYMMDDHHmmss') || '',
+                    openingDate: moment(resInfo.demandDate).format('YYYYMMDDHHmmss') || '',
                     closingDate: moment().format('YYYYMMDDHHmmss') || '',
-                    encounterType: {type: docInfo.codes.type, version: docInfo.codes.version, code: docInfo.codes.code},
-                    descr: docInfo.labo,
+                    encounterType: {type: resInfo.codes.type, version: resInfo.codes.version, code: resInfo.codes.code},
+                    descr: resInfo.labo,
                     subContacts: []
                 }).then(c => {
                     c.services.push({
                         id: this.api.crypto().randomUuid(),
                         label: 'labResult',
                         valueDate: parseInt(moment().format('YYYYMMDDHHmmss')),
-                        content: _.fromPairs([[this.language, {stringValue:docInfo.labo}]]),
+                        content: _.fromPairs([[this.language, {stringValue:resInfo.labo}]]),
                         tags:[{type:'CD-TRANSACTION', code:'labresult'}]
                     })
                     return this.api.contact().createContactWithUser(this.user, c)
@@ -1593,24 +1533,24 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
                             this.api.hcparty().getHealthcareParty(this.user.healthcarePartyId).then(hcp =>
                                 this.api.crypto()
                                     .extractKeysFromDelegationsForHcpHierarchy(hcp.id, document.id, _.size(document.encryptionKeys) ? document.encryptionKeys : document.delegations)
-                                    .then(({extractedKeys: enckeys}) => this.api.beresultimport().doImport(document.id, hcp.id, hcp.languages.find(e => !!e) || "en", docInfo.protocol, f.id, null, enckeys.join(','), c))
+                                    .then(({extractedKeys: enckeys}) => this.api.beresultimport().doImport(resInfo.documentId, hcp.id, hcp.languages.find(e => !!e) || "en", resInfo.protocol, f.id, null, enckeys.join(','), c))
                             )
                         )
                     })
                 }).then(c => {
-                    const idx = (this.unassignedResults || []).indexOf(docInfo.protocol)
+                    const idx = (this.unassignedResults || []).indexOf(resInfo.protocol)
                     this.splice('unassignedResults', idx)
 
                     let tempAssign = _.clone(this.assignedResults)
-                    tempAssign[c.id] = docInfo.protocol
+                    tempAssign[c.id] = resInfo.protocol
                     this.set('assignedResults',tempAssign)
 
-                    selMsg.unassignedResults = this.unassignedResults
-                    selMsg.assignedResults = tempAssign
+                    message.unassignedResults = this.unassignedResults
+                    message.assignedResults = tempAssign
 
-                    return selMsg
-                }).then(selMsg=>{
-                    return this.api.message().modifyMessage(selMsg).then(msg => {
+                    return message
+                }).then(message=>{
+                    return this.api.message().modifyMessage(message).then(msg => {
                         _.assign(this.selectedMessage, msg)
                         if (msg.unassignedResults.length === 0) {
                             this.closeSuggestions()
@@ -1625,19 +1565,19 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
                 })
             }) // map end
         } else {
-            console.warn('_assignResultToSelected missing attribute',selMsg,targets,document,docInfo)
+            console.warn('_assignResultToSelected missing attribute',patients,message,resInfo)
         }
     }
 
     _assignToPat() {
-        if (this.selectedMessage && this.selectedMessage.unassignedResults && this.selectedMessage.unassignedResults.length &&
-            this.documentBeingAssigned && this.documentBeingAssigned.docInfo &&
-            this.targetPats && this.targetPats.length) { // if has unassigned results && docinfo && targetPats
-            const selMsg = this.selectedMessage
-            const targets = this.targetPats || []
+        if (this.selectedMessage && this.thisMsg && this.selectedDocuments &&
+            this.resInfoBeingAssigned && this.resInfoBeingAssigned.labo && this.resInfoBeingAssigned.protocol &&
+            this.targetPats && this.targetPats.length) { // if has unassignd results && docinfo && targetPats
+            const patients = this.targetPats || []
+            const message = this.thisMsg || null
+            const resInfo = this.resInfoBeingAssigned || null
             const document = this.documentBeingAssigned
-            const docInfo = this.documentBeingAssigned.docInfo || null
-            this._assignResultToSelected(selMsg,targets,document,docInfo)
+            this._assignResultToSelected(patients,message,resInfo,document)
         } else {
             // console.log("assignToPat",this.targetPats)
             if (this.targetPats && this.targetPats.length) { // if no unassigned && no docinfo && no targetPats
