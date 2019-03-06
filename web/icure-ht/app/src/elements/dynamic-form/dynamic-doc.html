@@ -357,18 +357,18 @@
                         </div>
                     </template>
                 </template>
-                <div class="pointers-line">
-                    <template is="dom-if" if="[[downloadable]]">
-                        <paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>
-                            [[localize('dl','Download',language)]] <paper-icon-button icon="file-download"></paper-icon-button>
-                        </paper-button>
-                    </template>
-                    <template is="dom-if" if="[[printable]]">
-                        <paper-button class="hoverpointer" on-tap="_print" to-print="[[item]]">
-                            [[localize('print','Print',language)]] <paper-icon-button icon="print"></paper-icon-button>
-                        </paper-button>
-                    </template>
-                </div>
+                <!--<div class="pointers-line">-->
+                    <!--<template is="dom-if" if="[[downloadable]]">-->
+                        <!--<paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>-->
+                            <!--[[localize('dl','Download',language)]] <paper-icon-button icon="file-download"></paper-icon-button>-->
+                        <!--</paper-button>-->
+                    <!--</template>-->
+                    <!--<template is="dom-if" if="[[printable]]">-->
+                        <!--<paper-button class="hoverpointer" on-tap="_print" to-print="[[item]]">-->
+                            <!--[[localize('print','Print',language)]] <paper-icon-button icon="print"></paper-icon-button>-->
+                        <!--</paper-button>-->
+                    <!--</template>-->
+                <!--</div>-->
             </paper-card>
             </template>
         </template>

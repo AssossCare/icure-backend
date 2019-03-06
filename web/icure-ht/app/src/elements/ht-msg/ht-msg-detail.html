@@ -754,6 +754,8 @@
             }
             #import-suggest .modal-line > .pat-box {
                 flex-grow: 1;
+                display: flex;
+                flex-direction: column;
             }
 
             #import-suggest h5 {
@@ -776,12 +778,14 @@
             #import-suggest .scrollbox {
                 height: 40vh; /* TODO : when labresult is done, "128px" */
                 overflow-y: auto;
+                overflow-x: hidden;
                 background: var(--app-background-color-dark);
                 border-radius: 4px;
                 padding: 4px;
                 display: flex;
                 flex-direction: column;
                 margin-bottom: 8px;
+                flex-grow: 1;
                 box-sizing: border-box;
             }
             .scrollbox.laboInfo {
@@ -1028,7 +1032,9 @@
                             <div>
                                 <h5>[[localize('un_attachs','Unassigned results',language)]]</h5>
                                 <div class="laboInfo">
-                                    <div class="pat-name">[[localize('inv_pat','Patient',language)]] : [[resInfoBeingAssigned.sex]]. [[resInfoBeingAssigned.lastName]] [[resInfoBeingAssigned.firstName]] [[resInfoBeingAssigned.dateOfBirtth]]</div>
+                                    <div class="pat-name">[[localize('inv_pat','Patient',language)]] : [[resInfoBeingAssigned.sex]]. [[resInfoBeingAssigned.lastName]] [[resInfoBeingAssigned.firstName]] - [[resInfoBeingAssigned.formatedBirthDate]]
+                                        <template is="dom-if" if="[[resInfoBeingAssigned.ssin]]"> - [[resInfoBeingAssigned.ssin]]</template>
+                                    </div>
                                     <div class="labo-info labo-name"><b>[[localize('cdItemLab','Laboratory',language)]]</b> : [[resInfoBeingAssigned.protocol]] - [[resInfoBeingAssigned.labo]]</div>
                                     <div class="demand-date">[[localize('date','Date',language)]] : [[resInfoBeingAssigned.formatedDemandDate]]</div>
                                 </div>
@@ -1396,6 +1402,7 @@ class HtMsgDetail extends Polymer.TkLocalizerMixin(Polymer.Element) {
         if(!this.assignModal) {
             this.set('documentBeingAssigned',documentBeingAssigned)
             resInfo.formatedDemandDate = this.api.moment(resInfo.demandDate).format('DD/MM/YYYY hh:mm')
+            resInfo.formatedBirthDate= this.api.moment(resInfo.dateOfBirth).format('DD/MM/YYYY')
             this.set('resInfoBeingAssigned', resInfo)
             this.set('assignModal',true)
             this.set('targetPats',[])
