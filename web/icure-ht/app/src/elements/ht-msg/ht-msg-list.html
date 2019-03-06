@@ -470,6 +470,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     color: var(--app-status-color-nok);
                 }
 
+                span.pat-from-msg:after {
+                    content:",";
+                }
+                span.pat-from-msg:last-child:after {
+                    content: "";
+                }
+
                 @media screen and (max-width:1696px) {
                     .table-top paper-dropdown-menu#filterLabresult {
                         margin-left: 0;
@@ -679,16 +686,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                             </template>
                         </vaadin-grid-column>
 
-                        <template is="dom-if" if="[[hasLabResult(item)]]">
-                            <vaadin-grid-column flex-grow="1">
-                                <template class="header">
-                                    [[localize('pat','Patient',language)]]
-                                </template>
-                                <template>
-                                    <template is="dom-repeat" items="[[_getResInfos(msg)]]" as="resInfo">[[resInfo.firstName]] [[resInfo.lastName]], </template>
-                                </template>
-                            </vaadin-grid-column>
-                        </template>
+                        <!--<vaadin-grid-column width="[[_getColSize(selectList.selection.item,'patients-list','')]]">-->
+                        <vaadin-grid-column>
+                            <template class="header">
+                                [[localize('pat','Patients',language)]]
+                            </template>
+                            <template>
+                                <div class="cell frozen">
+                                    <template is="dom-repeat" for="[[getPatsFromMsg(item)]]" as="pat"><span class="pat-from-msg">[[pat]]</span> </template>
+                                </div>
+                            </template>
+                        </vaadin-grid-column>
 
                         <vaadin-grid-column width="138px" flex-grow="0">
                             <template class="header">
@@ -905,25 +913,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 }
             }
 
-            _getResInfos(msg) {
-                this.api.document().findByMessage(this.user.healthcarePartyId, msg)
-                    .then(docs => {
-                        if (docs.length) {
-                            let resInfos = []
-                            return docs.filter(doc => doc.id && doc.attachmentId && doc.secretForeignKeys)
-                                .map(doc => {
-                                    this.api.crypto().extractKeysFromDelegationsForHcpHierarchy(this.user.healthcarePartyId, doc.id, _.size(doc.encryptionKeys) ? doc.encryptionKeys : doc.delegations).then(({extractedKeys: enckeys}) =>
-                                        this.api.beresultimport().canHandle(doc.id,enckeys.join(',')).then(isResult => {
-                                            if (isResult) {
-                                                this.api.beresultimport().getInfos(doc.id, true, this.language || 'fr').then(resInfo =>{
-                                                    resInfos.push(resInfo) // `${resInfo.sex} ${resInfo.firstName} ${resInfo.lastName} `
-                                                })
-                                            }
-                                        })
-                                    )
-                                }) || resInfos
-                        } else return ['N/A']
-                    })
+            getPatsFromMsg(msg) {
+                return msg.tags && msg.tags.filter(t=>t.type === 'patient-name') || []
             }
 
             _isPage(page,item) {return page === item}
