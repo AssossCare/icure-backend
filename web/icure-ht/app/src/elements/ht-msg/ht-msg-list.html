@@ -992,7 +992,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     if (!this.pages.length) this.push('pages',1)
                     let start = (page-1) * pageSize;
                     let end = page * pageSize;
-                    this.set('pageStart', start+1 || 0) // dont say 0 - 50
+                    this.set('pageStart', start+1 || 1) // dont say 0 - 50
                     this.set('pageEnd', end > messages.length ? messages.length : end ||pageSize)
                     grid.items = messages.slice(start, end);
                     // pagination ends here
