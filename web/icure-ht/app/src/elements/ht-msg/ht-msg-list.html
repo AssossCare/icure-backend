@@ -941,7 +941,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
             setPatsToMsg(msg) {
                 // return msg.tags && msg.tags.filter(t=>t.type === 'patient-name') || []
-                if (!msg) return
                 if (msg && msg.id && this.hasLabResult(msg)) {
                     this.api.document().findByMessage(this.user.healthcarePartyId, msg).then(docs=> {
                         docs.map(doc => {
@@ -955,6 +954,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                             }
                         })
                     })
+                } else {
+                    this.set('isLoadingPatNames',false)
                 }
             }
 
