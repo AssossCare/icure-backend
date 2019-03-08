@@ -955,7 +955,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                         })
                     })
                 } else {
-                    this.set('isLoadingPatNames',false)
+                    setTimeout(()=>this.set('isLoadingPatNames',false),5000)
                 }
             }
 
