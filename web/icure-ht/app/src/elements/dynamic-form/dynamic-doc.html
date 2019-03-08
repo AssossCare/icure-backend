@@ -232,6 +232,7 @@
                     </template>
                     <template is="dom-if" if="[[_imageMimeType(document.mainUti, document.otherUtis.*, dataUrl)]]">
                         <span class="title">[[_title(document.name, title)]]</span>
+                        <template is="dom-if" if="[[isLoading]]"><ht-spinner active></ht-spinner></template>
                         <div class="pointers-line">
                             <template is="dom-if" if="[[downloadable]]">
                                 <paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>
@@ -250,6 +251,7 @@
                     </template>
                     <template is="dom-if" if="[[_pdfMimeType(document.mainUti, document.otherUtis.*, dataUrl)]]">
                         <span class="title">[[_title(document.name, title)]]</span>
+                        <template is="dom-if" if="[[isLoading]]"><ht-spinner active></ht-spinner></template>
                         <pdf-element src="[[dataUrl]]" elevation="5" downloadable fit-width fit-height enable-text-selection></pdf-element>
                     </template>
                     <template is="dom-if" if="[[_xmlMimeType(document.mainUti, document.otherUtis.*, dataUrl)]]">
@@ -276,6 +278,7 @@
                         <template is="dom-if" if="[[!_isEqual(document.documentLocation,'body')]]">
                             <span class="title">[[_title(document.name, title)]]</span>
                         </template>
+                        <template is="dom-if" if="[[isLoading]]"><ht-spinner active></ht-spinner></template>
                         <template is="dom-if" if="[[preview]]">
                             <pre class="txt-container">[[attachmentContent]]</pre>
                         </template>
@@ -297,6 +300,7 @@
                 </template>
                 <template is="dom-if" if="[[_unknownMimeType(document.mainUti, document.otherUtis.*, dataUrl)]]">
                     <span>[[_title(document.name, title)]]</span>
+                    <template is="dom-if" if="[[isLoading]]"><ht-spinner active></ht-spinner></template>
                     <div class="pointers-line">
                         <template is="dom-if" if="[[downloadable]]">
                             <paper-button class="hoverpointer" on-tap="_downloadAnnex" dataUrl$='[[item.dataUrl]]'>
@@ -321,6 +325,7 @@
                     <paper-tooltip for="assign-ico-lab-[[resInfo.protocol]]" position="left">[[localize('assign_to_pat','Assign to a patient',language)]]</paper-tooltip>
                 </template>
                 <span class="title">[[localize('cdItemResult','Results',language)]]</span>
+                <template is="dom-if" if="[[isLoading]]"><ht-spinner active></ht-spinner></template>
                 <div class="resInfos">
                     <h4>[[resInfo.sex]]. [[resInfo.lastName]] [[resInfo.firstName]]</h4>
                     <div class="line"><b class="label">[[localize('document','Document',language)]]</b><span>[[resInfo.protocol]] - [[resInfo.labo]]</span></div>
@@ -441,6 +446,10 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
             isPatDetail: {
 			    type: Boolean,
                 value: false
+            },
+            isLoading: {
+			    type: Boolean,
+                value: false
             }
 		};
 	}
@@ -452,6 +461,11 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
     constructor() {
 		super();
 	}
+
+	ready() {
+	    super.ready()
+        this.set('isLoading',true)
+    }
 
     _title(name, fallback) {
 	    return name && name !== 'No title' ? name : fallback
@@ -571,6 +585,7 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
                             this.api.beresultimport().getInfos(this.document.id, true, this.language || 'fr', enckeys.join(','))
                                 .then(res => {
                                     this.set('labOrProtocolContent', res)
+                                    this.set('isLoading',false)
                                 })
                         } else {
                             this.set('isLabOrProtocol', false)
@@ -578,6 +593,7 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
                                 .then(response => response.text()))
                                 .then(text => {
                                     this.set('attachmentContent', text)
+                                    this.set('isLoading',false)
                                 })
 
                         }
@@ -585,6 +601,7 @@ class DynamicDoc extends Polymer.TkLocalizerMixin(Polymer.Element) {
                 })
         } else {
             this.set('isLabOrProtocol', false)
+            this.set('isLoading',false)
         }
     }
 
