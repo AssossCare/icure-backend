@@ -407,6 +407,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     width: 42px;
                     margin: 6px;
                 }
+                ht-spinner.cell-spinner {
+                    height: 36px;
+                    width: 36px;
+                }
 
                 paper-icon-button.change-page {
                     cursor: pointer;
@@ -473,6 +477,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     color: var(--app-status-color-nok);
                 }
 
+                div.patNames-list {
+                    display: block;
+                    max-height: 39px;
+                    overflow-y: auto !important;
+                }
+
+                span.pat-from-msg:after {
+                    content:",";
+                }
+                span.pat-from-msg:last-child:after {
+                    content: "";
+                }
+
                 @media screen and (max-width:1696px) {
                     .table-top paper-dropdown-menu#filterLabresult {
                         margin-left: 0;
@@ -505,7 +522,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     .mb4 span {
                         display: none;
                     }
-                    
+
                     #capacity-indicator paper-progress {
                         width: 64px;
                     }
@@ -691,16 +708,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                             </template>
                         </vaadin-grid-column>
 
-                        <template is="dom-if" if="[[hasLabResult(item)]]">
-                            <vaadin-grid-column flex-grow="1">
-                                <template class="header">
-                                    [[localize('pat','Patient',language)]]
+                        <!--<vaadin-grid-column width="[[_getColSize(selectList.selection.item,'patients-list','')]]">-->
+                        <vaadin-grid-column flex-grow="3">
+                            <template class="header">
+                                [[localize('pat','Patients',language)]]
+                            </template>
+                            <template>
+                                <template is="dom-if" if="[[!getPatNames(item.id,patNames,patNames.*).length]]">
+                                    <template is="dom-if" if="[[!isLoadingPatNames]]"></template>
+                                    <template is="dom-if" if="[[isLoadingPatNames]]">
+                                        [[localize('loa','Loading',language)]] ...
+                                    </template>
                                 </template>
-                                <template>
-                                    <template is="dom-repeat" items="[[_getResInfos(msg)]]" as="resInfo">[[resInfo.firstName]] [[resInfo.lastName]], </template>
+                                <template is="dom-if" if="[!isLoadingPatNames]]">
+                                    <div id="pats-[[item.id]]" class="cell patNames-list">
+                                        <template is="dom-repeat" items="[[getPatNames(item.id,patNames,patNames.*)]]" as="pat"><span class="pat-from-msg">[[pat.name]]</span> </template>
+                                    </div>
                                 </template>
-                            </vaadin-grid-column>
-                        </template>
+                            </template>
+                        </vaadin-grid-column>
 
                         <vaadin-grid-column width="138px" flex-grow="0">
                             <template class="header">
@@ -735,7 +761,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                                 <paper-button class="page-number" on-tap="_selectPage" data-item$="[[item]]" selected$="[[_isPage(page, item)]]">[[item]]</paper-button>
                             </template>
                         </div> -->
-                       
+
                         <div class="nophone"><paper-icon-button id="scrolltop" class="scroll-top" icon="arrow-upward" on-tap="_scrollToTop"></paper-icon-button></div>
                         <paper-tooltip for="previous-page-change" position="left" offset="12">[[localize('page_prev','Previous page',language)]]</paper-tooltip>
                         <paper-tooltip for="next-page-change" position="right" offset="-5">[[localize('page_next','Next page',language)]]</paper-tooltip>
@@ -882,6 +908,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     pageEnd: {
                         type: Number,
                         value: 50
+                    },
+                    patNames: {
+                        type: Array,
+                        value: []
+                    },
+                    isLoadingPatNames: {
+                        type: Boolean,
+                        value: false
                     }
                 };
             }
@@ -952,17 +986,42 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                             return docs.filter(doc => doc.id && doc.attachmentId && doc.secretForeignKeys)
                                 .map(doc => {
                                     this.api.crypto().extractKeysFromDelegationsForHcpHierarchy(this.user.healthcarePartyId, doc.id, _.size(doc.encryptionKeys) ? doc.encryptionKeys : doc.delegations).then(({extractedKeys: enckeys}) =>
-                                        this.api.beresultimport().canHandle(doc.id,enckeys.join(',')).then(isResult => {
+                                        this.api.beresultimport().canHandle(doc.id, enckeys.join(',')).then(isResult => {
                                             if (isResult) {
-                                                this.api.beresultimport().getInfos(doc.id, true, this.language || 'fr').then(resInfo =>{
+                                                this.api.beresultimport().getInfos(doc.id, true, this.language || 'fr').then(resInfo => {
                                                     resInfos.push(resInfo) // `${resInfo.sex} ${resInfo.firstName} ${resInfo.lastName} `
                                                 })
                                             }
                                         })
                                     )
-                                }) || resInfos
-                        } else return ['N/A']
+                                })
+                        }
                     })
+            }
+
+            setPatsToMsg(msg) {
+                // return msg.tags && msg.tags.filter(t=>t.type === 'patient-name') || []
+                if (this.selectList.selection.item !== 'sentbox') {
+                    if (msg && msg.id && this.hasLabResult(msg)) {
+                        this.api.document().findByMessage(this.user.healthcarePartyId, msg).then(docs=> {
+                            docs.map(doc => {
+                                if (doc.documentLocation === 'annex' && doc.documentType === 'result' && (doc.encryptionKeys || doc.delegations)) {
+                                    this.api.crypto().extractKeysFromDelegationsForHcpHierarchy(this.user.healthcarePartyId,doc.id,_.size(doc.encryptionKeys) ? doc.encryptionKeys : doc.delegations)
+                                        .then(({extractedKeys: enckeys}) => this.api.beresultimport().getInfos(doc.id, false, null, enckeys.join(',')))
+                                        .then(resInfo => {
+                                            this.set('isLoadingPatNames',false)
+                                            if (resInfo) resInfo.map(res=>this.push('patNames',{id:msg.id, name:res.lastName + " " + res.firstName}))
+                                        })
+                                }
+                            })
+                        })
+                    } else setTimeout(()=>this.set('isLoadingPatNames',false),5000)
+                } else this.set('isLoadingPatNames',false)
+
+            }
+
+            getPatNames(id) {
+                return id && this.patNames.filter(p=>p.id === id) || []
             }
 
             _isPage(page,item) {return page === item}
@@ -980,6 +1039,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 // console.log('_messagesChanged')
                 const grid = this.shadowRoot.getElementById('mail-list')
                 if (grid && messages && page) {
+                    this.set('patNames',[])
+                    this.set('isLoadingPatNames',true)
                     this.set('gridSize',messages.length)
                     if (this.selectList.selection.item !== 'sentbox') {
                         this.set('unreadCount',messages.filter(m=>this.isUnread(m)).length)
@@ -994,7 +1055,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     let end = page * pageSize;
                     this.set('pageStart', start+1 || 1) // dont say 0 - 50
                     this.set('pageEnd', end > messages.length ? messages.length : end ||pageSize)
-                    grid.items = messages.slice(start, end);
+                    this.set('pageEnd', end ||pageSize)
+                    const msgsInPage = messages.slice(start, end)
+                    grid.items = msgsInPage;
+                    if (!this.patNames.length) {
+                        msgsInPage.map(m=>this.setPatsToMsg(m))
+                    }
                     // pagination ends here
                     this._scrollToTop()
                 }
@@ -1127,25 +1193,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 }).then(messages => {
                     this.set('messages', messages || [])
                 });
-            }
-            _getPatsFromMsg(m) {
-                this.api.document().findByMessage(this.user.healthcarePartyId, m).then(docs => {
-                    if(docs.length) {
-                        let unimportedPats = ''
-                        return docs.filter(doc => doc.id && doc.attachmentId && doc.secretForeignKeys).map(doc => {
-                            this.api.beresultimport().getInfos(doc.id).then(resultInfo=>{
-                                if (resultInfo.length) {
-                                    resultInfo.map(res => {
-                                        unimportedPats+= res.firstName+' '+res.lastName+', '
-                                    })
-                                    return unimportedPats+(resultInfo.length>1)?'...':''
-                                } else {
-                                    return ''
-                                }
-                            })
-                        })
-                    }
-                })
             }
 
             getReport(){
