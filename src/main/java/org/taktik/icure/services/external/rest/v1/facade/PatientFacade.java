@@ -131,7 +131,7 @@ public class PatientFacade implements OpenApiFacade{
         String[] startKeyElements = new Gson().fromJson(startKey, String[].class);
         @SuppressWarnings("unchecked") PaginationOffset paginationOffset = new PaginationOffset(startKeyElements, startDocumentId, null, limit);
 
-	    HealthcareParty hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId());
+	    HealthcareParty hcp = healthcarePartyLogic.getHealthcareParty(healthcarePartyId);
 	    PaginatedList<Patient> patients = patientLogic.findByHcPartyAndSsinOrDateOfBirthOrNameContainsFuzzy(hcp.getParentId() != null ? hcp.getParentId() : hcp.getId(), paginationOffset, filterValue, new Sorting(null, sortDirection));
 
 	    if (patients != null) {
