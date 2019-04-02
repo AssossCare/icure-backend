@@ -39,6 +39,7 @@ import org.taktik.icure.exceptions.DocumentNotFoundException;
 import org.taktik.icure.exceptions.MissingRequirementsException;
 import org.taktik.icure.logic.MessageLogic;
 import org.taktik.icure.logic.SessionLogic;
+import org.taktik.icure.logic.ICureSessionLogic;
 import org.taktik.icure.services.external.rest.v1.dto.ListOfIdsDto;
 import org.taktik.icure.services.external.rest.v1.dto.MessageDto;
 import org.taktik.icure.services.external.rest.v1.dto.MessagePaginatedList;
@@ -289,7 +290,7 @@ public class MessageFacade implements OpenApiFacade{
 	@GET
 	@Path("/byTransportGuid")
 	public Response findMessagesByTransportGuid(@QueryParam("transportGuid") String transportGuid, @QueryParam("received") Boolean received, @QueryParam("startKey") String startKey,
-												@QueryParam("startDocumentId") String startDocumentId, @QueryParam("limit") Integer limit) throws LoginException {
+												@QueryParam("startDocumentId") String startDocumentId, @QueryParam("limit") Integer limit, @QueryParam("healthcarePartyId") String healthcarePartyId) throws LoginException {
 		Response response;
 
 		boolean receivedPrimitive = (received != null ? received : false);
@@ -302,10 +303,14 @@ public class MessageFacade implements OpenApiFacade{
 
 		PaginatedList<Message> messages;
 
+        if (healthcarePartyId==null) {
+            healthcarePartyId = sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId();
+        }
+
 		if(receivedPrimitive){
-            messages = messageLogic.findByTransportGuidReceived(sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId(), transportGuid, paginationOffset);
+            messages = messageLogic.findByTransportGuidReceived(healthcarePartyId, transportGuid, paginationOffset);
         } else {
-            messages = messageLogic.findByTransportGuid(sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId(), transportGuid, paginationOffset);
+            messages = messageLogic.findByTransportGuid(healthcarePartyId, transportGuid, paginationOffset);
         }
 
 		if (messages != null) {
