@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import org.taktik.icure.be.ehealth.logic.kmehr.smf.SoftwareMedicalFileLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.sumehr.SumehrLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.medicationscheme.MedicationSchemeLogic;
+import org.taktik.icure.be.ehealth.logic.kmehr.note.NoteLogic;
 import org.taktik.icure.entities.HealthcareParty;
 import org.taktik.icure.logic.HealthcarePartyLogic;
 import org.taktik.icure.logic.PatientLogic;
@@ -40,6 +41,7 @@ import org.taktik.icure.services.external.http.websocket.WebSocketParam;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.SoftwareMedicalFileExportDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.SumehrExportInfoDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.MedicationSchemeExportInfoDto;
+import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.NoteExportInfoDto;
 
 
 @Component
@@ -52,6 +54,7 @@ public class KmehrWsFacade {
 	private MedicationSchemeLogic medicationSchemeLogic;
 	private HealthcarePartyLogic healthcarePartyLogic;
 	private PatientLogic patientLogic;
+	private NoteLogic noteLogic;
 
 	@Path("/generateSumehr")
 	@WebSocketOperation(adapterClass = KmehrFileOperation.class)
@@ -119,6 +122,19 @@ public class KmehrWsFacade {
 			operation.binaryResponse(ByteBuffer.wrap(bos.toByteArray()));
 			bos.close();
 		} catch (Exception e) {
+			operation.errorResponse(e);
+		}
+	}
+
+	@Path("/generateNote")
+	@WebSocketOperation(adapterClass = KmehrFileOperation.class)
+	public void generateDiaryNote(@WebSocketParam("patientId") String patientId , @WebSocketParam("language") String language, @WebSocketParam("document") String document, @WebSocketParam("transactionType") String transactionType, @WebSocketParam("info")  NoteExportInfoDto info, KmehrFileOperation operation) throws IOException{
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+		try{
+			noteLogic.createNoteExport(bos, patientLogic.getPatient(patientId), info.getSecretForeignKeys(), healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId()), language, document, info.getComment(), transactionType);
+			operation.binaryResponse(ByteBuffer.wrap(bos.toByteArray()));
+			bos.close();
+		}catch (Exception e) {
 			operation.errorResponse(e);
 		}
 	}

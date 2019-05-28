@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestBody
 import org.taktik.icure.be.ehealth.logic.kmehr.smf.SoftwareMedicalFileLogic
 import org.taktik.icure.be.ehealth.logic.kmehr.medicationscheme.MedicationSchemeLogic
+import org.taktik.icure.be.ehealth.logic.kmehr.note.NoteLogic
 import org.taktik.icure.be.ehealth.logic.kmehr.sumehr.SumehrLogic
 import org.taktik.icure.dto.mapping.ImportMapping
 import org.taktik.icure.entities.HealthElement
@@ -60,7 +61,7 @@ import javax.ws.rs.core.StreamingOutput
 @Api(tags = ["be_kmehr"])
 @Consumes("application/json")
 @Produces("application/json")
-class KmehrFacade(val mapper: MapperFacade, val sessionLogic: SessionLogic, val sumehrLogic: SumehrLogic, val softwareMedicalFileLogic: SoftwareMedicalFileLogic, val medicationSchemeLogic: MedicationSchemeLogic, val healthcarePartyLogic: HealthcarePartyLogic, val patientLogic: PatientLogic, val documentLogic: DocumentLogic) : OpenApiFacade {
+class KmehrFacade(val mapper: MapperFacade, val sessionLogic: SessionLogic, val sumehrLogic: SumehrLogic, val softwareMedicalFileLogic: SoftwareMedicalFileLogic, val medicationSchemeLogic: MedicationSchemeLogic, val healthcarePartyLogic: HealthcarePartyLogic, val patientLogic: PatientLogic, val documentLogic: DocumentLogic, val noteLogic: NoteLogic) : OpenApiFacade {
     @ApiOperation(value = "Generate sumehr", httpMethod = "POST", notes = "")
     @POST
     @Path("/sumehr/{patientId}/export")
@@ -179,5 +180,15 @@ class KmehrFacade(val mapper: MapperFacade, val sessionLogic: SessionLogic, val 
 		return ResponseUtils.ok(medicationSchemeLogic.importMedicationSchemeFile(documentLogic.readAttachment(documentId, document.attachmentId), user, language ?: userHealthCareParty.languages?.firstOrNull() ?: "fr",
 				patientId?.let { patientLogic.getPatient(patientId) },
 				mappings ?: HashMap()).map {mapper.map(it, ImportResultDto::class.java)})
+	}
+
+	@ApiOperation(value = "Generate note", httpMethod = "POST", notes = "")
+	@POST
+	@Path("/note/{patientId}/export")
+	@Produces("application/octet-stream")
+	fun exportNote(@PathParam("patientId") patientId: String, @QueryParam("language") language: String, @QueryParam("document") document: String, @QueryParam("comment") comment: String, @QueryParam("transactionType") transactionType: String, info: NoteExportInfoDto): Response {
+		val user = sessionLogic.currentSessionContext.user
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(user.healthcarePartyId)
+		return ResponseUtils.ok(StreamingOutput { output -> noteLogic.createNoteExport(output!!, patientLogic.getPatient(patientId), info.secretForeignKeys, userHealthCareParty, language ?: "fr", document, info.comment, transactionType)})
 	}
 }
