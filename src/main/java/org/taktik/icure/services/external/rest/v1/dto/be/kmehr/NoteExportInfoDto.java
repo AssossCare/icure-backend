@@ -10,6 +10,7 @@ public class NoteExportInfoDto implements Serializable {
     HealthcarePartyDto recipient;
     String comment;
     String type;
+    String document;
 
     public List<String> getSecretForeignKeys() {
         return secretForeignKeys;
@@ -38,4 +39,8 @@ public class NoteExportInfoDto implements Serializable {
     public String getType() { return type; }
 
     public void setType(String type) { this.type = type; }
+
+    public String getDocument() { return document; }
+
+    public void setDocument(String document) { this.document = document; }
 }

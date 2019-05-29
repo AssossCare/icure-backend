@@ -186,9 +186,9 @@ class KmehrFacade(val mapper: MapperFacade, val sessionLogic: SessionLogic, val 
 	@POST
 	@Path("/note/{patientId}/export")
 	@Produces("application/octet-stream")
-	fun exportNote(@PathParam("patientId") patientId: String, @QueryParam("language") language: String, @QueryParam("document") document: String, @QueryParam("comment") comment: String, @QueryParam("transactionType") transactionType: String, info: NoteExportInfoDto): Response {
+	fun exportNote(@PathParam("patientId") patientId: String, @QueryParam("language") language: String, @QueryParam("comment") comment: String, @QueryParam("transactionType") transactionType: String, info: NoteExportInfoDto): Response {
 		val user = sessionLogic.currentSessionContext.user
 		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(user.healthcarePartyId)
-		return ResponseUtils.ok(StreamingOutput { output -> noteLogic.createNoteExport(output!!, patientLogic.getPatient(patientId), info.secretForeignKeys, userHealthCareParty, language ?: "fr", document, info.comment, transactionType)})
+		return ResponseUtils.ok(StreamingOutput { output -> noteLogic.createNoteExport(output!!, patientLogic.getPatient(patientId), info.secretForeignKeys, userHealthCareParty, language ?: "fr", info.document, info.comment, transactionType)})
 	}
 }
