@@ -288,14 +288,14 @@ public class InvoiceFacade implements OpenApiFacade{
 			"components to form the Complex Key's startKey") @QueryParam("startKey") String startKey, @ApiParam(value = "A patient document ID") @QueryParam("startDocumentId") String startDocumentId, @ApiParam(value = "Number of rows") @QueryParam("limit") Integer limit) {
 
 		String[] sk;
-		String startKey1 = "";
-		Long startKey2 = 0L;
+		String startKey1 = null;
+		Long startKey2 = null;
 	    if(startKey != null) {
 			sk = startKey.split(",");
 			startKey1 = sk[0];
 			startKey2 = Long.parseLong(sk[1]);
 		}
-		return mapper.map(invoiceLogic.findByAuthor(hcPartyId, fromDate, toDate, startKey == null ? null : new PaginationOffset<>(ComplexKey.of(new Object[]{startKey1, startKey2}), startDocumentId, 0, limit)), InvoicePaginatedList.class);
+		return mapper.map(invoiceLogic.findByAuthor(hcPartyId, fromDate, toDate, new PaginationOffset<>(ComplexKey.of(new Object[]{startKey1, startKey2}), startDocumentId, 0, limit)), InvoicePaginatedList.class);
 	}
 
 	@ApiOperation(
