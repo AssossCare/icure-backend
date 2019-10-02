@@ -29,6 +29,7 @@ import org.taktik.icure.be.ehealth.logic.kmehr.smf.SoftwareMedicalFileLogic
 import org.taktik.icure.be.ehealth.logic.kmehr.medicationscheme.MedicationSchemeLogic
 import org.taktik.icure.be.ehealth.logic.kmehr.sumehr.SumehrLogic
 import org.taktik.icure.be.ehealth.logic.kmehr.diarynote.DiaryNoteLogic
+import org.taktik.icure.be.ehealth.logic.kmehr.kmehrEnvelope.KmehrEnvelopeLogic
 import org.taktik.icure.dto.mapping.ImportMapping
 import org.taktik.icure.dto.result.CheckSMFPatientResult
 import org.taktik.icure.entities.HealthElement
@@ -73,11 +74,20 @@ class KmehrFacade(
         val softwareMedicalFileLogic: SoftwareMedicalFileLogic,
         val medicationSchemeLogic: MedicationSchemeLogic,
         val diaryNoteLogic: DiaryNoteLogic,
+        val kmehrEnvelopeLogic: KmehrEnvelopeLogic,
         val kmehrNoteLogic: KmehrNoteLogic,
         val healthcarePartyLogic: HealthcarePartyLogic,
         val patientLogic: PatientLogic,
         val documentLogic: DocumentLogic
 ) : OpenApiFacade {
+    @ApiOperation(value = "Generate kmehrEnvelope", httpMethod = "POST", notes = "")
+    @POST
+    @Path("/kmehrenvelope/{patientId}/export")
+    @Produces("application/octet-stream")
+    fun generateKmehrEnvelope(@PathParam("patientId") patientId: String, @QueryParam("language") language: String, info: KmehrEnvelopeExportInfoDto): Response {
+        return ResponseUtils.ok(StreamingOutput { output -> kmehrEnvelopeLogic.createKmehrEnvelope(output!!, patientLogic.getPatient(patientId), info.secretForeignKeys, healthcarePartyLogic.getHealthcareParty(sessionLogic.currentSessionContext.user.healthcarePartyId), mapper!!.map<HealthcarePartyDto, HealthcareParty>(info.recipient, HealthcareParty::class.java), language, info.note, info.tags, info.contexts, info.psy, info.documentId, info.transactionType,null) })
+    }
+
     @ApiOperation(value = "Generate diarynote", httpMethod = "POST", notes = "")
     @POST
     @Path("/diarynote/{patientId}/export")
