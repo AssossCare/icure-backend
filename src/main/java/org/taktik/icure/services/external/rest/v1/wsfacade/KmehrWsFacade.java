@@ -27,9 +27,11 @@ import javax.ws.rs.Path;
 import ma.glasnost.orika.MapperFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.taktik.icure.be.ehealth.logic.kmehr.kmehrEnvelope.KmehrEnvelopeLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.smf.SoftwareMedicalFileLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.sumehr.SumehrLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.diarynote.DiaryNoteLogic;
+import org.taktik.icure.be.ehealth.logic.kmehr.kmehrEnvelope.KmehrEnvelopeLogic;
 import org.taktik.icure.be.ehealth.logic.kmehr.medicationscheme.MedicationSchemeLogic;
 import org.taktik.icure.entities.HealthcareParty;
 import org.taktik.icure.logic.HealthcarePartyLogic;
@@ -41,6 +43,7 @@ import org.taktik.icure.services.external.http.websocket.WebSocketParam;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.SoftwareMedicalFileExportDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.SumehrExportInfoDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.DiaryNoteExportInfoDto;
+import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.KmehrEnvelopeExportInfoDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.kmehr.MedicationSchemeExportInfoDto;
 
 
@@ -52,10 +55,26 @@ public class KmehrWsFacade {
 	private SumehrLogic sumehrLogicV1;
 	private SumehrLogic sumehrLogicV2;
 	private DiaryNoteLogic diaryNoteLogic;
+	private KmehrEnvelopeLogic kmehrEnvelopeLogic;
 	private SoftwareMedicalFileLogic softwareMedicalFileLogic;
 	private MedicationSchemeLogic medicationSchemeLogic;
 	private HealthcarePartyLogic healthcarePartyLogic;
 	private PatientLogic patientLogic;
+
+    @Path("/generateKmehrEnvelope")
+    @WebSocketOperation(adapterClass = KmehrFileOperation.class)
+    public void generateKmehrEnvelope(@WebSocketParam("patientId") String patientId, @WebSocketParam("language") String language, @WebSocketParam("info") KmehrEnvelopeExportInfoDto info, KmehrFileOperation operation) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+        try {
+            kmehrEnvelopeLogic.createKmehrEnvelope(bos, patientLogic.getPatient(patientId), info.getSecretForeignKeys(),
+                healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId()),
+                mapper.map(info.getRecipient(), HealthcareParty.class), language, info.getNote(), info.getTags(), info.getContexts(), info.getPsy(), info.getDocumentId(), info.getTransactionType(), operation);
+            operation.binaryResponse(ByteBuffer.wrap(bos.toByteArray()));
+            bos.close();
+        } catch (Exception e) {
+            operation.errorResponse(e);
+        }
+    }
 
 	@Path("/generateDiaryNote")
     @WebSocketOperation(adapterClass = KmehrFileOperation.class)
@@ -194,6 +213,9 @@ public class KmehrWsFacade {
 
 	@Autowired
     public void setDiaryNoteLogic(DiaryNoteLogic diaryNoteLogic) {this.diaryNoteLogic = diaryNoteLogic; }
+
+    @Autowired
+    public void setKmehrEnvelopeLogic(KmehrEnvelopeLogic kmehrEnvelopeLogic) {this.kmehrEnvelopeLogic = kmehrEnvelopeLogic; }
 
 	@Autowired
 	public void setMedicationSchemeLogic(MedicationSchemeLogic medicationSchemeLogic) { this.medicationSchemeLogic = medicationSchemeLogic; }
