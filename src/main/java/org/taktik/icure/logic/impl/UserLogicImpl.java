@@ -46,6 +46,7 @@ import org.taktik.icure.exceptions.MissingRequirementsException;
 import org.taktik.icure.exceptions.UserRegistrationException;
 import org.taktik.icure.logic.HealthcarePartyLogic;
 import org.taktik.icure.logic.PropertyLogic;
+import org.taktik.icure.logic.SessionLogic;
 import org.taktik.icure.logic.UserLogic;
 import org.taktik.icure.logic.listeners.UserLogicListener;
 
@@ -66,7 +67,6 @@ public class UserLogicImpl extends PrincipalLogicImpl<User> implements UserLogic
 
 	private static final PropertyUtilsBean pub = new PropertyUtilsBean();
 
-
 	private static final Duration CHECK_USERS_EXPIRATION_TIME_RANGE = Duration.ofDays(1);
 
 	private UserDAO userDAO;
@@ -81,6 +81,7 @@ public class UserLogicImpl extends PrincipalLogicImpl<User> implements UserLogic
 	private Set<UserLogicListener> listeners = new HashSet<>();
 
 	private UUIDGenerator uuidGenerator;
+	private SessionLogic sessionLogic;
 
 	public UserLogicImpl() {
 	}
@@ -129,8 +130,6 @@ public class UserLogicImpl extends PrincipalLogicImpl<User> implements UserLogic
 		return userDAO.findByHcpId(hcpartyId).parallelStream()
 				.filter(v -> v != null)
 				.map(v -> v.getId())
-//				.map(v -> new LabelledOccurence((String) v.getKey().getComponents().get(1), v.getValue()))
-//				.sorted(Comparator.comparing(LabelledOccurence::getOccurence).reversed())
 				.collect(Collectors.toList());
 	}
 
@@ -369,6 +368,15 @@ public class UserLogicImpl extends PrincipalLogicImpl<User> implements UserLogic
 			return user.getExpirationDate() == null || !user.getExpirationDate().isBefore(Instant.now());
 		}
 
+		return false;
+	}
+
+	@Override
+	public boolean checkPassword(String password) {
+		User user = this.sessionLogic.getCurrentSessionContext().getUser();
+		if (user != null) {
+			return passwordEncoder.isPasswordValid(user.getPasswordHash(), password, null);
+		}
 		return false;
 	}
 
@@ -815,6 +823,11 @@ public class UserLogicImpl extends PrincipalLogicImpl<User> implements UserLogic
 	@Autowired
 	public void setHealthcarePartyLogic(HealthcarePartyLogic healthcarePartyLogic) {
 		this.healthcarePartyLogic = healthcarePartyLogic;
+	}
+
+	@Autowired
+	public void setSessionLogic(SessionLogic sessionLogic) {
+		this.sessionLogic = sessionLogic;
 	}
 
 	@Autowired

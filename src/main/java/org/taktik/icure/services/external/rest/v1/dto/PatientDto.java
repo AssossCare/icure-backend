@@ -20,7 +20,19 @@ package org.taktik.icure.services.external.rest.v1.dto;
 
 
 import io.swagger.annotations.ApiModelProperty;
-import org.taktik.icure.services.external.rest.v1.dto.embed.*;
+import org.taktik.icure.entities.Property;
+import org.taktik.icure.entities.base.CodeStub;
+import org.taktik.icure.services.external.rest.v1.dto.embed.AddressDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.DeactivationReasonDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.EmploymentInfoDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.FinancialInstitutionInformationDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.Gender;
+import org.taktik.icure.services.external.rest.v1.dto.embed.InsurabilityDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.MedicalHouseContractDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.PartnershipDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.PatientHealthCarePartyDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.PersonalStatusDto;
+import org.taktik.icure.services.external.rest.v1.dto.embed.SchoolingInfoDto;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,13 +40,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 @SuppressWarnings("UnusedDeclaration")
-public class PatientDto extends IcureDto {
+public class PatientDto extends IcureDto implements EncryptableDto {
     protected String mergeToPatientId;
 	protected Set<String> mergedIds = new HashSet<>();
+    protected Set<String> nonDuplicateIds = new HashSet<>();
 
     protected String firstName;
     protected String lastName;
@@ -63,6 +74,8 @@ public class PatientDto extends IcureDto {
 	protected String warning;
     protected String nationality;
 	protected String preferredUserId;
+	protected String comment;
+    protected Set<String> encryptedAdministrativesDocuments = new HashSet<>();
 
     @ApiModelProperty(dataType = "string")
     protected byte[] picture;
@@ -71,6 +84,8 @@ public class PatientDto extends IcureDto {
 
     //No guarantee of unicity
     protected String externalId;
+    protected Map<String, String[]> hcPartyKeys = new HashMap<String, String[]>();
+    protected String publicKey;
 
     protected List<AddressDto> addresses = new ArrayList<>();
 	protected List<InsurabilityDto> insurabilities = new ArrayList<>();
@@ -78,13 +93,22 @@ public class PatientDto extends IcureDto {
     protected List<PartnershipDto> partnerships = new ArrayList<>();
 	protected List<PatientHealthCarePartyDto> patientHealthCareParties = new ArrayList<>();
 
-        protected List<MedicalHouseContractDto> medicalHouseContracts = new ArrayList<>();
+	protected List<MedicalHouseContractDto> medicalHouseContracts = new ArrayList<>();
 
     protected List<FinancialInstitutionInformationDto> financialInstitutionInformation = new ArrayList<>();
 
     protected Map<String,List<String>> parameters = new HashMap<>();
 
     protected java.util.List<CodeDto> patientProfessions = new java.util.ArrayList<>();
+
+    protected CodeStub fatherBirthCountry;
+    protected CodeStub birthCountry;
+    protected CodeStub nativeCountry;
+    protected CodeStub socialStatus;
+    protected CodeStub mainSourceOfIncome;
+    protected List<SchoolingInfoDto> schoolingInfos;
+    protected List<EmploymentInfoDto> employementInfos;
+    private Set<Property> properties = new HashSet<>();
 
 
     public String getMergeToPatientId() {
@@ -102,6 +126,10 @@ public class PatientDto extends IcureDto {
 	public void setMergedIds(Set<String> mergedIds) {
 		this.mergedIds = mergedIds;
 	}
+
+    public Set<String> getNonDuplicateIds() {  return nonDuplicateIds;  }
+
+    public void setNonDuplicateIds(Set<String> nonDuplicateIds) {  this.nonDuplicateIds = nonDuplicateIds; }
 
 	public String getFirstName() {
         return firstName;
@@ -384,7 +412,23 @@ public class PatientDto extends IcureDto {
         this.medicalHouseContracts = medicalHouseContracts;
     }
 
-	@Override
+    public Map<String, String[]> getHcPartyKeys() {
+        return hcPartyKeys;
+    }
+
+    public void setHcPartyKeys(Map<String, String[]> hcPartyKeys) {
+        this.hcPartyKeys = hcPartyKeys;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    @Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -452,4 +496,48 @@ public class PatientDto extends IcureDto {
     public void setDeactivationReason(DeactivationReasonDto deactivationReason) {
         this.deactivationReason = deactivationReason;
     }
+
+    public Set<String> getEncryptedAdministrativesDocuments() {
+        return encryptedAdministrativesDocuments;
+    }
+
+    public void setEncryptedAdministrativesDocuments(Set<String> encryptedAdministrativesDocuments) {
+        this.encryptedAdministrativesDocuments = encryptedAdministrativesDocuments;
+    }
+
+    public String getComment() { return comment; }
+
+    public void setComment(String comment) { this.comment = comment; }
+
+    public CodeStub getFatherBirthCountry() { return fatherBirthCountry; }
+
+    public void setFatherBirthCountry(CodeStub fatherBirthCountry) { this.fatherBirthCountry = fatherBirthCountry; }
+
+    public CodeStub getBirthCountry() { return birthCountry; }
+
+    public void setBirthCountry(CodeStub birthCountry) { this.birthCountry = birthCountry; }
+
+    public CodeStub getNativeCountry() { return nativeCountry; }
+
+    public void setNativeCountry(CodeStub nativeCountry) { this.nativeCountry = nativeCountry; }
+
+    public CodeStub getSocialStatus() { return socialStatus; }
+
+    public void setSocialStatus(CodeStub socialStatus) { this.socialStatus = socialStatus; }
+
+    public CodeStub getMainSourceOfIncome() { return mainSourceOfIncome; }
+
+    public void setMainSourceOfIncome(CodeStub mainSourceOfIncome) { this.mainSourceOfIncome = mainSourceOfIncome; }
+
+    public List<SchoolingInfoDto> getSchoolingInfos() { return schoolingInfos; }
+
+    public void setSchoolingInfos(List<SchoolingInfoDto> schoolingInfos) { this.schoolingInfos = schoolingInfos; }
+
+    public List<EmploymentInfoDto> getEmployementInfos() { return employementInfos; }
+
+    public void setEmployementInfos(List<EmploymentInfoDto> employementInfos) { this.employementInfos = employementInfos; }
+
+    public Set<Property> getProperties() { return properties; }
+
+    public void setProperties(Set<Property> properties) { this.properties = properties; }
 }

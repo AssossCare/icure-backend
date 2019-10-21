@@ -67,7 +67,8 @@ class MedicationSchemeExport : KmehrExport() {
 			sfks: List<String>,
 			sender: HealthcareParty,
 			language: String,
-            version: Int,
+            version: Int?,
+            services: List<Service>?,
 			decryptor: AsyncDecrypt?,
 			progressor: AsyncProgress?,
 			config: Config = Config(_kmehrId = System.currentTimeMillis().toString(),
@@ -81,13 +82,13 @@ class MedicationSchemeExport : KmehrExport() {
 		val message = initializeMessage(sender, config)
 		message.header.recipients.add(RecipientType().apply {
 			hcparties.add(HcpartyType().apply {
-				cds.add(CDHCPARTY().apply { s = CDHCPARTYschemes.CD_HCPARTY; sv = "1.6"; value = "application" })
+				cds.add(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "application" })
 				name = "VITALINK" //TODO: should change based on selected hub
 			})
 		})
 
 		// TODO split marshalling
-		message.folders.add(makePatientFolder(1, patient, sfks, version, sender, config, language, decryptor, progressor))
+		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getActiveServices(sender.id, sfks, listOf("medication"), decryptor), decryptor, progressor))
 
         val jaxbMarshaller = JAXBContext.newInstance(Kmehrmessage::class.java).createMarshaller()
 
@@ -99,8 +100,9 @@ class MedicationSchemeExport : KmehrExport() {
 	}
 
 
-	private fun makePatientFolder(patientIndex: Int, patient: Patient, sfks: List<String>, version: Int,
-								  healthcareParty: HealthcareParty, config: Config, language: String, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
+	private fun makePatientFolder(patientIndex: Int, patient: Patient, version: Int?, healthcareParty: HealthcareParty,
+                                  config: Config, language: String, medicationServices: List<Service>, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
+
 		//creation of Patient
         val folder = FolderType().apply {
 			ids.add(idKmehr(patientIndex))
@@ -108,7 +110,8 @@ class MedicationSchemeExport : KmehrExport() {
 		}
 
         var idkmehrIdx = 1
-		folder.transactions.add(TransactionType().apply {
+
+        folder.transactions.add(TransactionType().apply {
 			ids.add(idKmehr(idkmehrIdx))
             idkmehrIdx++
             cds.add(CDTRANSACTION().apply { s = CDTRANSACTIONschemes.CD_TRANSACTION; sv = "1.10"; value = "medicationscheme" })
@@ -119,38 +122,28 @@ class MedicationSchemeExport : KmehrExport() {
 						?: healthcareParty.id)))
 			}
 
-            var _idOnSafeName : String?
-            _idOnSafeName = "vitalinkuri"
-            var _idOnSafe : String?
-            _idOnSafe = "/subject/72022102793/medication-scheme"
-            var _medicationSchemeSafeVersion : Int?
-            _medicationSchemeSafeVersion = 22
-
             //TODO: is there a way to quit the .map once we've found what we where looking for ? (or use something else ?)
-            getActiveServices(healthcareParty.id, sfks, listOf("medication"), decryptor).map { svc ->
-                svc.content.values.find{c -> c.medicationValue != null}?.let{cnt -> cnt.medicationValue?.let{m ->
-                    m.idOnSafes?.let{idOnSafe ->
-                        _idOnSafe = idOnSafe
-                        m.safeIdName?.let{idName ->
-                            _idOnSafeName = idName
-                        }
-                    }
-                    m.medicationSchemeSafeVersion?.let{safeVersion ->
-                        _medicationSchemeSafeVersion = safeVersion
-                    }
-                }}
-            }
-            _idOnSafeName?.let{idName ->
+            val (_idOnSafeName, _idOnSafe, _medicationSchemeSafeVersion) = medicationServices.flatMap { svc ->
+                svc.content.values.filter{c ->
+                            (c.medicationValue?.let { m ->
+                                m.idOnSafes != null && m.medicationSchemeSafeVersion != null
+                            } == true)
+                }.map{c -> c.medicationValue}
+            }.lastOrNull()?.let {
+                Triple("vitalinkuri", it.idOnSafes, it.medicationSchemeSafeVersion)
+            } ?: Triple("vitalinkuri", null, null)
+
+            _idOnSafe?.let{ idName ->
                 ids.add(IDKMEHR().apply { s = IDKMEHRschemes.LOCAL; sl = idName; sv = "1.0"; value = _idOnSafe})
             }
 			isIscomplete = true
 			isIsvalidated = true
 
             //TODO: decide what tho do with the Version On Safe
-            this.version = version.toString()
+            this.version = (version ?: (_medicationSchemeSafeVersion ?: 0)+1).toString()
 		})
 
-        folder.transactions.addAll(getActiveServices(healthcareParty.id, sfks, listOf("medication"), decryptor).map { svc ->
+        folder.transactions.addAll(medicationServices.map { svc ->
             svc.content.values.find { c -> c.medicationValue != null }?.let { cnt -> cnt.medicationValue?.let { m ->
             TransactionType().apply {
                 ids.add(idKmehr(idkmehrIdx))
@@ -173,10 +166,10 @@ class MedicationSchemeExport : KmehrExport() {
                     listOf(
                         ItemType().apply {
                             ids.add(idKmehr(itemsIdx++))
-                            cds.add(CDITEM().apply { s = CDITEMschemes.CD_ITEM; sv = "1.11"; value = "healthcareelement" })
+                            cds.add(CDITEM().apply { s(CDITEMschemes.CD_ITEM); value = "healthcareelement" })
                             contents.add(ContentType().apply {
-                                cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_ITEM_MS; sv = CDCONTENTschemes.CD_ITEM_MS.version(); value = "adaptationflag" })
-                                cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_MS_ADAPTATION; sv = CDCONTENTschemes.CD_MS_ADAPTATION.version(); value = when {
+                                cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_ITEM_MS); value = "adaptationflag" })
+                                cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_MS_ADAPTATION); value = when {
                                     m.timestampOnSafe == null -> "medication"
                                     m.timestampOnSafe == svc.modified -> "nochange"
                                     else -> "posology" //TODO: handle medication and/or posology changes ! allowed values: nochange, medication, posology, treatmentsuspension (medication cannot be changed in Topaz)
@@ -192,9 +185,9 @@ class MedicationSchemeExport : KmehrExport() {
                     headingsAndItemsAndTexts.add(
                         ItemType().apply {
                             ids.add(idKmehr(itemsIdx++))
-                            cds.add(CDITEM().apply { s = CDITEMschemes.CD_ITEM; sv = "1.11"; value = "healthcareelement" })
+                            cds.add(CDITEM().apply { s(CDITEMschemes.CD_ITEM); value = "healthcareelement" })
                             contents.add(ContentType().apply {
-                                cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_ITEM_MS; sv = CDCONTENTschemes.CD_ITEM_MS.version(); value = "medicationuse" })
+                                cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_ITEM_MS); value = "medicationuse" })
                             })
                             contents.add(ContentType().apply {
                                 texts.add(TextType().apply { l = language; value = m.medicationUse })
@@ -206,9 +199,9 @@ class MedicationSchemeExport : KmehrExport() {
                     headingsAndItemsAndTexts.add(
                         ItemType().apply {
                             ids.add(idKmehr(itemsIdx++))
-                            cds.add(CDITEM().apply { s = CDITEMschemes.CD_ITEM; sv = "1.11"; value = "healthcareelement" })
+                            cds.add(CDITEM().apply { s(CDITEMschemes.CD_ITEM); value = "healthcareelement" })
                             contents.add(ContentType().apply {
-                                cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_ITEM_MS; sv = CDCONTENTschemes.CD_ITEM_MS.version(); value = "begincondition" })
+                                cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_ITEM_MS); value = "begincondition" })
                             })
                             contents.add(ContentType().apply {
                                 texts.add(TextType().apply { l = language; value = m.beginCondition })
@@ -220,9 +213,9 @@ class MedicationSchemeExport : KmehrExport() {
                     headingsAndItemsAndTexts.add(
                         ItemType().apply {
                             ids.add(idKmehr(itemsIdx++))
-                            cds.add(CDITEM().apply { s = CDITEMschemes.CD_ITEM; sv = "1.11"; value = "healthcareelement" })
+                            cds.add(CDITEM().apply { s(CDITEMschemes.CD_ITEM); value = "healthcareelement" })
                             contents.add(ContentType().apply {
-                                cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_ITEM_MS; sv = CDCONTENTschemes.CD_ITEM_MS.version(); value = "endcondition" })
+                                cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_ITEM_MS); value = "endcondition" })
                             })
                             contents.add(ContentType().apply {
                                 texts.add(TextType().apply { l = language; value = m.endCondition })
@@ -234,10 +227,10 @@ class MedicationSchemeExport : KmehrExport() {
                     headingsAndItemsAndTexts.add(
                             ItemType().apply {
                                 ids.add(idKmehr(itemsIdx++))
-                                cds.add(CDITEM().apply { s = CDITEMschemes.CD_ITEM; sv = "1.11"; value = "healthcareelement" })
+                                cds.add(CDITEM().apply { s(CDITEMschemes.CD_ITEM); value = "healthcareelement" })
                                 contents.add(ContentType().apply {
-                                    cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_ITEM_MS; sv = CDCONTENTschemes.CD_ITEM_MS.version(); value = "origin" })
-                                    cds.add(CDCONTENT().apply { s = CDCONTENTschemes.CD_MS_ADAPTATION; sv = CDCONTENTschemes.CD_MS_ADAPTATION.version(); value = m.origin })
+                                    cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_ITEM_MS); value = "origin" })
+                                    cds.add(CDCONTENT().apply { s(CDCONTENTschemes.CD_MS_ADAPTATION); value = m.origin })
                                 })
                             })
                 }

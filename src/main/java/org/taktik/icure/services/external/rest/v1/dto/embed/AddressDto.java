@@ -21,6 +21,7 @@ package org.taktik.icure.services.external.rest.v1.dto.embed;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.jetbrains.annotations.NotNull;
+import org.taktik.icure.services.external.rest.v1.dto.EncryptableDto;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ import java.util.Set;
  * Created by aduchate on 21/01/13, 14:43
  */
 //@JsonTypeInfo(use=JsonTypeInfo.Id.NAME, include=JsonTypeInfo.As.PROPERTY, property="objectType")
-public class AddressDto implements Serializable, Location, Comparable<AddressDto> {
+public class AddressDto implements Serializable, Location, Comparable<AddressDto>, EncryptableDto {
 
 	protected String objectType;
 
@@ -45,6 +46,8 @@ public class AddressDto implements Serializable, Location, Comparable<AddressDto
     protected String postalCode;
     protected String city;
     protected String country;
+	protected String encryptedSelf;
+	protected String note;
 
 	protected List<TelecomDtoEmbed> telecoms = new ArrayList<>();
 
@@ -130,6 +133,14 @@ public class AddressDto implements Serializable, Location, Comparable<AddressDto
 		this.telecoms = telecoms;
 	}
 
+	public String getEncryptedSelf() {
+		return encryptedSelf;
+	}
+
+	public void setEncryptedSelf(String encryptedSelf) {
+		this.encryptedSelf = encryptedSelf;
+	}
+
 	@JsonIgnore
     String findMobile() {
 		for (TelecomDtoEmbed t: telecoms) {
@@ -165,7 +176,11 @@ public class AddressDto implements Serializable, Location, Comparable<AddressDto
 		}
 	}
 
-//	void sortTelecoms() {
+    public String getNote() { return note; }
+
+    public void setNote(String note) { this.note = note; }
+
+    //	void sortTelecoms() {
 //		Collections.sort(telecoms, new Comparator<TelecomDtoEmbed>() {
 //
 //            @Override

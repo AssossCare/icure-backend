@@ -16,12 +16,12 @@
  * along with iCureBackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package org.taktik.icure.be.format.logic.impl;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -30,14 +30,18 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.taktik.icure.be.format.logic.ResultFormatLogic;
 import org.taktik.icure.dao.impl.idgenerators.UUIDGenerator;
 import org.taktik.icure.entities.Contact;
 import org.taktik.icure.entities.Document;
+import org.taktik.icure.entities.HealthcareParty;
+import org.taktik.icure.entities.Patient;
 import org.taktik.icure.entities.embed.Service;
 import org.taktik.icure.entities.embed.ServiceLink;
 import org.taktik.icure.entities.embed.SubContact;
@@ -49,7 +53,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-public abstract class GenericResultFormatLogicImpl {
+public abstract class GenericResultFormatLogicImpl implements ResultFormatLogic {
 	protected HealthcarePartyLogic healthcarePartyLogic;
 	protected UUIDGenerator uuidGen = new UUIDGenerator();
 	protected FormLogic formLogic;
@@ -64,11 +68,19 @@ public abstract class GenericResultFormatLogicImpl {
 		this.healthcarePartyLogic = healthcarePartyLogic;
 	}
 
-	protected void fillContactWithLines(Contact ctc, List<LaboLine> lls, String planOfActionId, String hcpId, List<String> protocolIds, List<String> formIds) {
+    @Override
+    public void doExport(HealthcareParty sender, HealthcareParty recipient, Patient patient, LocalDateTime date, String ref, String mimeType, byte[] content, OutputStream output) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    protected void fillContactWithLines(Contact ctc, List<LaboLine> lls, String planOfActionId, String hcpId,
+                                        List<String> protocolIds, List<String> formIds) {
 		lls.forEach((ll) -> {
 			String formId = null;
-			for (int i=0;i<protocolIds.size();i++) {
-				if (protocolIds.get(i).equals(ll.getRil() != null ? ll.getRil().getProtocol() : ll.getResultReference()) || protocolIds.size()==1 && protocolIds.get(i)!=null && protocolIds.get(i).startsWith("***")) {
+			for (int i = 0; i < protocolIds.size(); i++) {
+				if (protocolIds.get(i).equals(ll.getRil() != null ? ll.getRil().getProtocol() : ll.getResultReference())
+						|| protocolIds.size() == 1 && protocolIds.get(i) != null
+								&& protocolIds.get(i).startsWith("***")) {
 					formId = formIds.get(i);
 				}
 			}
@@ -79,9 +91,11 @@ public abstract class GenericResultFormatLogicImpl {
 			ssc.setProtocol(ll.resultReference);
 			ssc.setPlanOfActionId(planOfActionId);
 
-			ssc.setStatus((ll.isResultLabResult() ? SubContact.STATUS_LABO_RESULT : SubContact.STATUS_PROTOCOL_RESULT) | SubContact.STATUS_UNREAD | (ll.ril != null && ll.ril.complete ? SubContact.STATUS_COMPLETE : 0));
+			ssc.setStatus((ll.isResultLabResult() ? SubContact.STATUS_LABO_RESULT : SubContact.STATUS_PROTOCOL_RESULT)
+					| SubContact.STATUS_UNREAD | (ll.ril != null && ll.ril.complete ? SubContact.STATUS_COMPLETE : 0));
 			ssc.setFormId(formId);
-			ssc.setServices(ll.getServices().stream().map(s -> new ServiceLink(s.getId())).collect(Collectors.toList()));
+			ssc.setServices(
+					ll.getServices().stream().map(s -> new ServiceLink(s.getId())).collect(Collectors.toList()));
 
 			ctc.getServices().addAll(ll.getServices());
 			ctc.getSubContacts().add(ssc);
@@ -89,25 +103,27 @@ public abstract class GenericResultFormatLogicImpl {
 	}
 
 	protected String decodeRawData(byte[] rawData) throws IOException {
-		String text;
+		String text = null;
 
-		CharsetDecoder utf8Decoder = StandardCharsets.UTF_8.newDecoder();
-		try {
-			CharBuffer decodedChars = utf8Decoder.decode(ByteBuffer.wrap(rawData));
-			text = decodedChars.toString();
-		} catch (CharacterCodingException e) {
-			String frenchCp850OrCp1252 = org.taktik.icure.db.StringUtils.detectFrenchCp850Cp1252(rawData);
-			if ("cp850".equals(frenchCp850OrCp1252)) {
-				text = new String(rawData, "cp850");
-			} else {
-				text = new String(rawData, "cp1252");
-			}
-		}
+		// Test BOM
+		// Test utf-16 byte order mark presence
+        if (rawData != null) {
+            CharsetDecoder utf8Decoder = StandardCharsets.UTF_8.newDecoder();
+            try {
+                CharBuffer decodedChars = utf8Decoder.decode(ByteBuffer.wrap(rawData));
+                text = decodedChars.toString();
+            } catch (CharacterCodingException e) {
+                String frenchCp850OrCp1252 = org.taktik.icure.db.StringUtils.detectFrenchCp850Cp1252(rawData);
+                String charset = "cp850".equals(frenchCp850OrCp1252) ? "cp850" : "cp1252";
 
+                text = new String(rawData, charset);
+            }
+        }
 		return text;
 	}
 
-	protected org.w3c.dom.Document getXmlDocument(Document doc, List<String> enckeys) throws ParserConfigurationException, IOException, SAXException {
+	protected org.w3c.dom.Document getXmlDocument(Document doc, List<String> enckeys)
+			throws ParserConfigurationException, IOException, SAXException {
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 		return dBuilder.parse(new ByteArrayInputStream(doc.decryptAttachment(enckeys)));

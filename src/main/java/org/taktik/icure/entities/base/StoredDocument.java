@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.ektorp.Attachment;
 import org.ektorp.util.Assert;
 import org.taktik.icure.entities.embed.RevisionInfo;
+import org.taktik.icure.entities.utils.MergeUtil;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -37,6 +38,14 @@ import java.util.TreeMap;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StoredDocument implements Versionable<String> {
+	private static final long serialVersionUID = 1L;
+
+	public StoredDocument() {
+	}
+
+	public StoredDocument(String id) {
+		this.id = id;
+	}
 
 	@JsonProperty("_attachments")
 	private Map<String, Attachment> attachments = new HashMap<>();
@@ -56,7 +65,7 @@ public class StoredDocument implements Versionable<String> {
 	protected String _type = this.getClass().getName();
 	@JsonProperty("rev_history")
 	protected Map<String, String> revHistory = reversedTreeMap();
-	
+
 	@JsonIgnore
 	public void addInlineAttachment(Attachment a) {
 		Assert.notNull(a, "attachment may not be null");
@@ -179,6 +188,9 @@ public class StoredDocument implements Versionable<String> {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(deletionDate, id, rev);
+		return Objects.hash(deletionDate, id);
+	}
+
+	protected void solveConflictsWith(StoredDocument other) {
 	}
 }

@@ -74,16 +74,10 @@ public class ContactDAOImpl extends GenericIcureDAOImpl<Contact> implements Cont
 
     @Override
     @View(name = "by_hcparty_openingdate", map = "classpath:js/contact/By_hcparty_openingdate.js")
-    public PaginatedList<Contact> listContactsByOpeningDate(String hcPartyId, Long openingDate, PaginationOffset<List<Serializable>> pagination) {
-		ComplexKey startKey = pagination.getStartKey() == null ? ComplexKey.of(hcPartyId, openingDate) : ComplexKey.of(pagination.getStartKey().toArray());
-		ComplexKey endKey = ComplexKey.of(hcPartyId, openingDate);
-
-		return pagedQueryView(
-                "by_hcparty_openingdate",
-                startKey,
-                endKey,
-                pagination, false
-		);
+    public PaginatedList<Contact> listContactsByOpeningDate(String hcPartyId, Long startOpeningDate, Long endOpeningDate, PaginationOffset pagination) {
+      ComplexKey startKey =  pagination.getStartKey() != null ? ComplexKey.of(hcPartyId, startOpeningDate) : ComplexKey.of(hcPartyId, pagination.getStartKey());
+      ComplexKey endKey = ComplexKey.of(hcPartyId, endOpeningDate);
+      return pagedQueryView("by_hcparty_openingdate", startKey, endKey, pagination, false);
     }
 
     @Override
@@ -156,31 +150,34 @@ public class ContactDAOImpl extends GenericIcureDAOImpl<Contact> implements Cont
 
     @Override
     @View(name = "service_by_hcparty_patient_tag", map = "classpath:js/contact/Service_by_hcparty_patient_tag.js")
-    public List<String> findServicesByPatientTag(String hcPartyId, String patientSecretForeignKey, String tagType, String tagCode, Long startValueDate, Long endValueDate) {
-		if (startValueDate != null && startValueDate<99999999) { startValueDate = startValueDate * 1000000 ; }
-		if (endValueDate != null && endValueDate<99999999) { endValueDate = endValueDate * 1000000 ; }
-		ComplexKey from = ComplexKey.of(
-                hcPartyId,
-                patientSecretForeignKey,
-                tagType,
-                tagCode,
-				startValueDate
+    public List<String> findServicesByPatientTag(String hcPartyId, List<String> patientSecretForeignKeys, String tagType, String tagCode, Long startValueDate, Long endValueDate) {
+      if (startValueDate != null && startValueDate<99999999) { startValueDate = startValueDate * 1000000 ; }
+      if (endValueDate != null && endValueDate<99999999) { endValueDate = endValueDate * 1000000 ; }
+      List<String> ids = new ArrayList<String>();
+      for (String patientSecretForeignKey : patientSecretForeignKeys) {
+        ComplexKey from = ComplexKey.of(
+                    hcPartyId,
+                    patientSecretForeignKey,
+                    tagType,
+                    tagCode,
+                    startValueDate
         );
         ComplexKey to = ComplexKey.of(
-                hcPartyId,
-                patientSecretForeignKey,
-                tagType == null ? ComplexKey.emptyObject() : tagType,
-                tagCode == null ? ComplexKey.emptyObject() : tagCode,
-				endValueDate  == null ? ComplexKey.emptyObject() : endValueDate
+                  hcPartyId,
+                  patientSecretForeignKey,
+                  tagType == null ? ComplexKey.emptyObject() : tagType,
+                  tagCode == null ? ComplexKey.emptyObject() : tagCode,
+                  endValueDate  == null ? ComplexKey.emptyObject() : endValueDate
         );
 
         ViewQuery viewQuery = createQuery("service_by_hcparty_patient_tag")
-                .startKey(from)
-                .endKey(to)
-                .includeDocs(false);
+                  .startKey(from)
+                  .endKey(to)
+                  .includeDocs(false);
 
-        List<String> ids = db.queryView(viewQuery, String.class);
-        return ids;
+        ids.addAll(db.queryView(viewQuery, String.class));
+      }
+      return ids.stream().distinct().collect(Collectors.toList());
     }
 
     @Override
@@ -228,33 +225,40 @@ public class ContactDAOImpl extends GenericIcureDAOImpl<Contact> implements Cont
     }
 
 
-	@Override
+	  @Override
     @View(name = "service_by_hcparty_patient_code", map = "classpath:js/contact/Service_by_hcparty_patient_code.js")
-    public List<String> findServicesByPatientCode(String hcPartyId, String patientSecretForeignKey, String codeType, String codeCode, Long startValueDate, Long endValueDate) {
-    	if (startValueDate != null && startValueDate<99999999) { startValueDate = startValueDate * 1000000 ; }
-		if (endValueDate != null && endValueDate<99999999) { endValueDate = endValueDate * 1000000 ; }
-        ComplexKey from = ComplexKey.of(
-                hcPartyId,
-                patientSecretForeignKey,
-                codeType,
-                codeCode,
-				startValueDate
-        );
-        ComplexKey to = ComplexKey.of(
-                hcPartyId,
-                patientSecretForeignKey,
-                codeType == null ? ComplexKey.emptyObject() : codeType,
-                codeCode == null ? ComplexKey.emptyObject() : codeCode,
-				endValueDate  == null ? ComplexKey.emptyObject() : endValueDate
-        );
+    public List<String> findServicesByForeignKeys(String hcPartyId, List<String> patientSecretForeignKeys, String codeType, String codeCode, Long startValueDate, Long endValueDate) {
+    if (startValueDate != null && startValueDate<99999999) { startValueDate = startValueDate * 1000000 ; }
+    if (endValueDate != null && endValueDate<99999999) { endValueDate = endValueDate * 1000000 ; }
+      List<String> ids = new ArrayList<String>();
+      for (String patientSecretForeignKey : patientSecretForeignKeys) {
+          ComplexKey from = ComplexKey.of(
+            hcPartyId,
+            patientSecretForeignKey,
+            codeType,
+            codeCode,
+            startValueDate
+          );
+          ComplexKey to = ComplexKey.of(
+            hcPartyId,
+            patientSecretForeignKey,
+            codeType == null ? ComplexKey.emptyObject() : codeType,
+            codeCode == null ? ComplexKey.emptyObject() : codeCode,
+            endValueDate  == null ? ComplexKey.emptyObject() : endValueDate
+          );
 
-        ViewQuery viewQuery = createQuery("service_by_hcparty_patient_code")
-                .startKey(from)
-                .endKey(to)
-                .includeDocs(false);
+          ViewQuery viewQuery = createQuery("service_by_hcparty_patient_code")
+            .startKey(from)
+            .endKey(to)
+            .includeDocs(false);
+          ids.addAll(db.queryView(viewQuery, String.class));
+      }
+      return ids.stream().distinct().collect(Collectors.toList());
+    }
 
-        List<String> ids = db.queryView(viewQuery, String.class);
-        return ids;
+    @Override
+    public List<String> findServicesByForeignKeys(String hcPartyId, Set<String> patientSecretForeignKeys) {
+        return this.findByHcPartyPatient(hcPartyId, new ArrayList<>(patientSecretForeignKeys)).stream().flatMap(c -> c.getServices().stream().map(s -> s.getId())).collect(Collectors.toList());
     }
 
     @Override

@@ -19,14 +19,17 @@
 package org.taktik.icure.services.external.rest.v1.dto.be.kmehr;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.taktik.icure.services.external.rest.v1.dto.HealthcarePartyDto;
 
 public class SumehrExportInfoDto implements Serializable {
 	List<String> secretForeignKeys;
+	List<String> excludedIds;
 	HealthcarePartyDto recipient;
 	String comment;
+	Boolean includeIrrelevantInformation;
 
 	public List<String> getSecretForeignKeys() {
 		return secretForeignKeys;
@@ -34,6 +37,17 @@ public class SumehrExportInfoDto implements Serializable {
 
 	public void setSecretForeignKeys(List<String> secretForeignKeys) {
 		this.secretForeignKeys = secretForeignKeys;
+	}
+
+	public List<String> getExcludedIds() {
+		if(excludedIds != null)
+			return excludedIds;
+		else
+			return new ArrayList<>();
+	}
+
+	public void setExcludedIds(List<String> excludedIds) {
+		this.excludedIds = excludedIds;
 	}
 
 	public String getComment() {
@@ -51,4 +65,12 @@ public class SumehrExportInfoDto implements Serializable {
 	public void setRecipient(HealthcarePartyDto recipient) {
 		this.recipient = recipient;
 	}
+
+    public Boolean getIncludeIrrelevantInformation() {
+        return includeIrrelevantInformation;
+    }
+
+    public void setIncludeIrrelevantInformation(Boolean includeIrrelevantInformation) {
+        this.includeIrrelevantInformation = includeIrrelevantInformation;
+    }
 }

@@ -38,21 +38,23 @@ public interface ContactDAO extends GenericDAO<Contact> {
 
     List<String> findServicesByTag(String hcPartyId, String tagType, String tagCode, Long startValueDate, Long endValueDate);
 
-    List<String> findServicesByPatientTag(String hcPartyId, String patientSecretForeignKey, String tagType, String tagCode, Long startValueDate, Long endValueDate);
+    List<String> findServicesByPatientTag(String hcPartyId, List<String> patientSecretForeignKeys, String tagType, String tagCode, Long startValueDate, Long endValueDate);
 
     List<String> findServicesByCode(String hcPartyId, String codeType, String codeCode, Long startValueDate, Long endValueDate);
 
 	List<CouchKeyValue<Long>> listCodesFrequencies(String hcPartyId, String codeType);
 
-	List<String> findServicesByPatientCode(String hcPartyId, String patientSecretForeignKey, String codeType, String codeCode, Long startValueDate, Long endValueDate);
+	List<String> findServicesByForeignKeys(String hcPartyId, List<String> patientSecretForeignKeys, String codeType, String codeCode, Long startValueDate, Long endValueDate);
 
-	List<Contact> listByServices(Collection<String> services);
+    List<String> findServicesByForeignKeys(String hcPartyId, Set<String> patientSecretForeignKeys);
+
+    List<Contact> listByServices(Collection<String> services);
 
     List<String> findByServices(Collection<String> services);
 
     PaginatedList<Contact> listContacts(String hcPartyId, PaginationOffset<String> pagination);
 
-    PaginatedList<Contact> listContactsByOpeningDate(String hcPartyId, Long openingDate, PaginationOffset<List<Serializable>> pagination);
+    PaginatedList<Contact> listContactsByOpeningDate(String hcPartyId, Long startOpeningDate, Long endOpeningDate, PaginationOffset pagination);
 
     List<Contact> findByHcPartyFormId(String hcPartyId, String formId);
 
