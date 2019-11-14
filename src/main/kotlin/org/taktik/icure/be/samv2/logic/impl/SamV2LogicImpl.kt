@@ -21,6 +21,10 @@ class SamV2LogicImpl(val ampDAO: AmpDAO, val vmpDAO: VmpDAO, val vmpGroupDAO: Vm
         return ampDAO.findAmpsByVmpGroupCode(vmpgCode, paginationOffset)
     }
 
+    override fun findAmpsByCode(code: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp> {
+        return ampDAO.findAmpsByCode(code, paginationOffset)
+    }
+
     override fun findAmpsByVmpGroupId(vmpgId: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp> {
         return ampDAO.findAmpsByVmpGroupId(vmpgId, paginationOffset)
     }

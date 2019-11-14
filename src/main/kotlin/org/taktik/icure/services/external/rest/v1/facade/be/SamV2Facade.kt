@@ -194,6 +194,39 @@ class SamV2Facade(val mapper: MapperFacade, val samV2Logic: SamV2Logic) : OpenAp
         return response
     }
 
+    @ApiOperation(value = "Finding AMPs by code with pagination.", response = AmpPaginatedList::class, httpMethod = "GET", notes = "Returns a list of codes matched with given input. If several types are provided, pagination is not supported")
+    @GET
+    @Path("/amp/byCode/{code}")
+    fun findPaginatedAmpsByCode(
+            @ApiParam(value = "code", required = true) @PathParam("code") code: String,
+            @ApiParam(value = "The start key for pagination: a JSON representation of an array containing all the necessary components to form the Complex Key's startKey")
+            @QueryParam("startKey") startKey: String?,
+            @ApiParam(value = "An amp document ID", required = false) @QueryParam("startDocumentId") startDocumentId: String?,
+            @ApiParam(value = "Number of rows", required = false) @QueryParam("limit") limit: Int?): Response {
+
+        val response: Response
+
+        val startKeyElements = if (startKey == null) null else Gson().fromJson(startKey, List::class.java)
+        val paginationOffset = PaginationOffset(startKeyElements, startDocumentId, null, limit)
+
+        val ampsList = samV2Logic.findAmpsByCode(code, paginationOffset)
+
+        if (ampsList.rows == null) {
+            ampsList.rows = ArrayList()
+        }
+
+        val ampDtosPaginatedList = org.taktik.icure.services.external.rest.v1.dto.PaginatedList<AmpDto>()
+        mapper.map<PaginatedList<Amp>, org.taktik.icure.services.external.rest.v1.dto.PaginatedList<AmpDto>>(
+                ampsList,
+                ampDtosPaginatedList,
+                object : TypeBuilder<PaginatedList<Amp>>() {}.build(),
+                object : TypeBuilder<org.taktik.icure.services.external.rest.v1.dto.PaginatedList<AmpDto>>() {}.build()
+        )
+        response = ResponseUtils.ok(ampDtosPaginatedList)
+
+        return response
+    }
+
     @ApiOperation(value = "Finding AMPs by group with pagination.", response = AmpPaginatedList::class, httpMethod = "GET", notes = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
     @GET
     @Path("/amp/byGroupId/{vmpgId}")

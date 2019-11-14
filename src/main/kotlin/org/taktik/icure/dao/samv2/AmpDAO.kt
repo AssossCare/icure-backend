@@ -27,6 +27,7 @@ import org.taktik.icure.entities.samv2.Amp
 interface AmpDAO : GenericDAO<Amp> {
     fun findAmpsByLabel(language: String?, label: String?, pagination: PaginationOffset<*>?): PaginatedList<Amp>
     fun findAmpsByVmpGroupCode(vmpgCode: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp>
+    fun findAmpsByCode(code: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp>
     fun findAmpsByVmpGroupId(vmpgId: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp>
     fun findAmpsByVmpCode(vmpCode: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp>
     fun findAmpsByVmpId(vmpId: String, paginationOffset: PaginationOffset<*>): PaginatedList<Amp>
