@@ -283,8 +283,8 @@ class SumehrExport : KmehrExport() {
 
     internal fun <T : ICureDocument> getNonConfidentialItems(items: List<T>): List<T> {
 		return items.filter { s ->
-			null == s.tags.find { it.type == "org.taktik.icure.entities.embed.Confidentiality" && it.code == "secret" } &&
-					null == s.codes.find { it.type == "org.taktik.icure.entities.embed.Visibility" && it.code == "maskedfromsummary" }
+			null == s.tags.find { it.type == "org.taktik.icure.entities.embed.Confidentiality" && (it.code == "secret" || it.code == "personal") } &&
+					null == s.tags.find { it.type == "org.taktik.icure.entities.embed.Visibility" && it.code == "maskedfromsummary" }
 		}
 	}
 
