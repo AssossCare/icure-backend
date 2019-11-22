@@ -28,6 +28,7 @@ public class InvoicingCodeDto implements Serializable {
 
     protected String id;
 	protected String logicalId; //Stays the same when a code is resent to the IO
+    protected String userId;
 
     protected String contactId;
     protected String serviceId;
@@ -446,4 +447,12 @@ public class InvoicingCodeDto implements Serializable {
     public Integer getTransplantationCode() {	return transplantationCode;	}
 
     public void setTransplantationCode(Integer transplantationCode) {	this.transplantationCode = transplantationCode;	}
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 }
