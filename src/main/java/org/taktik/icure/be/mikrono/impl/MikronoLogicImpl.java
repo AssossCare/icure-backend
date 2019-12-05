@@ -37,6 +37,7 @@ import org.taktik.icure.dto.message.EmailOrSmsMessage;
 import org.taktik.icure.services.external.rest.v1.dto.AppointmentDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.mikrono.AppointmentImportDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.mikrono.MikronoAppointmentTypeRestDto;
+import org.taktik.icure.services.external.rest.v1.dto.be.mikrono.MikronoAppointmentTypeRestsDto;
 import org.taktik.icure.services.external.rest.v1.dto.be.mikrono.MikronoAppointmentsDto;
 
 import java.io.IOException;
@@ -193,7 +194,10 @@ public class MikronoLogicImpl implements MikronoLogic {
         String finalServerUrl = getMikronoServer(serverUrl);
         return appointmentTypes.stream().map(a -> {
             try {
-                return restTemplate.exchange(StringUtils.chomp(finalServerUrl, "/") + "/rest/appointmentTypeResource", HttpMethod.PUT, new HttpEntity<>(a, getUserHttpHeaders(finalServerUrl, username, userToken)), MikronoAppointmentTypeRestDto.class).getBody();
+                // TODO: this code is stupid because it send one apptype and try to return a list
+                //ResponseEntity<MikronoAppointmentTypeRestsDto> appointmentTypeDtosResponse = restTemplate.exchange(StringUtils.chomp(finalServerUrl, "/") + "/rest/appointmentTypeResource", HttpMethod.PUT, new HttpEntity<>(a, getUserHttpHeaders(finalServerUrl, username, userToken)), MikronoAppointmentTypeRestsDto.class);
+                //return appointmentTypeDtosResponse.getBody().getAppointmentTypes().stream().map(MikronoAppointmentTypeRestDto::new).collect(Collectors.toList());
+                return new MikronoAppointmentTypeRestDto();
             } catch (HttpClientErrorException e) {
                 if (e.getStatusCode().equals(HttpStatus.FAILED_DEPENDENCY)) {
                     log.error("Error when creating appointment type: FAILED_DEPENDENCY: " + e.getMessage());
