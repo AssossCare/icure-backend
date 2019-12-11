@@ -29,6 +29,8 @@ public class MedicationSchemeExportInfoDto implements Serializable {
     List<ServiceDto> services;
 	HealthcarePartyDto recipient;
 	String comment;
+	Integer version;
+	String RecepientSafe;
 
 	public List<String> getSecretForeignKeys() {
 		return secretForeignKeys;
@@ -50,9 +52,7 @@ public class MedicationSchemeExportInfoDto implements Serializable {
 		return recipient;
 	}
 
-	public void setRecipient(HealthcarePartyDto recipient) {
-		this.recipient = recipient;
-	}
+	public void setRecipient(HealthcarePartyDto recipient) { this.recipient = recipient; }
 
     public List<ServiceDto> getServices() {
         return services;
@@ -60,5 +60,19 @@ public class MedicationSchemeExportInfoDto implements Serializable {
 
     public void setServices(List<ServiceDto> services) {
         this.services = services;
+    }
+
+    public Integer getVersion(){return version;}
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public String getRecepientSafe() {
+        return RecepientSafe;
+    }
+
+    public void setRecepientSafe(String RecepientSafe) {
+        this.RecepientSafe = RecepientSafe;
     }
 }
