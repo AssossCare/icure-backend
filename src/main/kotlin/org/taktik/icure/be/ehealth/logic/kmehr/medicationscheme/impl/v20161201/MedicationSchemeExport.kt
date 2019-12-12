@@ -27,6 +27,8 @@ import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.*
 import org.taktik.icure.be.ehealth.logic.kmehr.Config
 import org.taktik.icure.be.ehealth.logic.kmehr.v20161201.KmehrExport
+import org.taktik.icure.constants.ServiceStatus
+import org.taktik.icure.entities.HealthElement
 import org.taktik.icure.entities.HealthcareParty
 import org.taktik.icure.entities.Patient
 import org.taktik.icure.entities.embed.Service
@@ -35,9 +37,12 @@ import org.taktik.icure.services.external.http.websocket.AsyncProgress
 import org.taktik.icure.services.external.rest.v1.dto.embed.ServiceDto
 import org.taktik.icure.services.external.rest.v1.dto.filter.Filters
 import org.taktik.icure.services.external.rest.v1.dto.filter.service.ServiceByHcPartyTagCodeDateFilter
+import org.taktik.icure.utils.FuzzyValues
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.*
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.Marshaller
@@ -75,8 +80,10 @@ class MedicationSchemeExport : KmehrExport() {
 			})
 		})
 
+        val hcpartyIds = getHcpHierarchyIds(sender)
+
 		// TODO split marshalling
-		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getActiveServices(sender.id, sfks, listOf("medication"), decryptor), decryptor, progressor))
+		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getMedications(hcpartyIds, sfks, emptyList<String>(), false, decryptor), decryptor, progressor))
 
         val jaxbMarshaller = JAXBContext.newInstance(Kmehrmessage::class.java).createMarshaller()
 
@@ -228,29 +235,90 @@ class MedicationSchemeExport : KmehrExport() {
         return folder
 	}
 
+    fun getHcpHierarchyIds(sender: HealthcareParty): HashSet<String> {
+        val hcpartyIds = HashSet<String>()
+        hcpartyIds.add(sender.id)
 
-    private fun getActiveServices(hcPartyId: String, sfks: List<String>, cdItems: List<String>, decryptor: AsyncDecrypt?): List<Service> {
-        val f = Filters.UnionFilter(sfks.map { k ->
-                Filters.UnionFilter(cdItems.map { cd ->
-                    ServiceByHcPartyTagCodeDateFilter(hcPartyId, k, "CD-ITEM", cd, null, null, null, null)
+        var hcpInHierarchy = sender
+
+        while (hcpInHierarchy.parentId != null) {
+            hcpInHierarchy = healthcarePartyLogic!!.getHealthcareParty(hcpInHierarchy.parentId)
+            hcpartyIds.add(hcpInHierarchy.id)
+        }
+        return hcpartyIds
+    }
+
+    internal fun getMedications(hcPartyIds: Set<String>, sfks: List<String>, excludedIds: List<String>, includeIrrelevantInformation: Boolean, decryptor: AsyncDecrypt?): List<Service> {
+        val now = LocalDateTime.now()
+
+        //Chronic medications
+        val medications = getActiveServices(hcPartyIds, sfks, listOf("medication"), emptyList(), includeIrrelevantInformation, decryptor).filter {
+            getMedicationServiceClosingDate(it)?.let { FuzzyValues.getDateTime(it)?.isAfter(now) != false } ?: true }
+
+        val cnks = HashSet(medications.filter { m -> m.codes.find { it.type == "CD-DRUG-CNK" } != null }.mapNotNull { m -> m.codes.find { it.type == "CD-DRUG-CNK" }?.code })
+
+        //Prescriptions
+        return medications.filter{!excludedIds.contains(it.id)} + getActiveServices(hcPartyIds, sfks, listOf("treatment"), excludedIds, includeIrrelevantInformation, decryptor).filter {
+            val cnk = it.codes.find { it.type == "CD-DRUG-CNK" }?.code
+            val res = (null == cnk || !cnks.contains(cnk)) &&
+                    (
+                            (null == getMedicationServiceClosingDate(it) && FuzzyValues.compare((it.openingDate ?: it.valueDate ?: 1970101) , FuzzyValues.getFuzzyDate(LocalDateTime.now().minusWeeks(2), ChronoUnit.SECONDS))>0)
+                                    || (getMedicationServiceClosingDate(it)?.let { FuzzyValues.getDateTime(it)?.isAfter(now) != false } ?: false)
+                            )
+            cnk?.let { cnks.add(it) }
+            res
+        }
+    }
+
+    internal fun getMedicationServiceClosingDate(it: Service): Long? {
+        return (it.closingDate
+                ?: it.content?.values?.mapNotNull {
+                    it.medicationValue?.endMoment?.let { FuzzyValues.getFuzzyDateTime(FuzzyValues.getDateTime(it), ChronoUnit.SECONDS) }
+                }?.firstOrNull()
+                )
+    }
+
+    internal fun isInactiveAndIrrelevant(it: HealthElement) =
+            ServiceStatus.isIrrelevant(it.status) && (it.closingDate != null || ServiceStatus.isInactive(it.status))
+
+    internal fun isInactiveAndIrrelevant(s: Service) =
+            ((ServiceStatus.isInactive(s.status) || s.tags?.any { it.type == "CD-LIFECYCLE" && it.code == "inactive" } ?: false) //Inactive
+                    && ServiceStatus.isIrrelevant(s.status))
+
+    internal fun getActiveServices(hcPartyIds: Set<String>, sfks: List<String>, cdItems: List<String>, excludedIds: List<String>, includeIrrelevantInformation: Boolean, decryptor: AsyncDecrypt?): List<Service> {
+        val f = Filters.UnionFilter(
+                hcPartyIds.map { hcpId ->
+                    Filters.UnionFilter(
+                            sfks.map { k ->
+                                Filters.UnionFilter(cdItems.map { cd ->
+                                    ServiceByHcPartyTagCodeDateFilter(hcpId, k, "CD-ITEM", cd, null, null, null, null)
+                                })
+                            })
                 })
-            })
 
         var services = contactLogic?.getServices(filters?.resolve(f))?.filter { s ->
             s.endOfLife == null && //Not end of lifed
-                !((((s.status ?: 0) and 1) != 0) || s.tags?.any { it.type == "CD-LIFECYCLE" && it.code == "inactive" } ?: false) //Inactive
-                && (s.content.values.any { null != (it.binaryValue ?: it.booleanValue ?: it.documentId ?: it.instantValue ?: it.measureValue ?: it.medicationValue) || it.stringValue?.length ?: 0 > 0 } || s.encryptedContent?.length ?: 0 > 0 || s.encryptedSelf?.length ?: 0 > 0) //And content
-        }
+                    (if (includeIrrelevantInformation) !isInactiveAndIrrelevant(s) else !ServiceStatus.isIrrelevant(s.status))
+                    && (s.content.values.any { null != (it.binaryValue ?: it.booleanValue ?: it.documentId ?: it.instantValue ?: it.measureValue ?: it.medicationValue) || it.stringValue?.length ?: 0 > 0 } || s.encryptedContent?.length ?: 0 > 0 || s.encryptedSelf?.length ?: 0 > 0) //And content
+        }?.filter { s -> !excludedIds.contains(s.id) }
 
         val toBeDecryptedServices = services?.filter { it.encryptedContent?.length ?: 0 > 0 || it.encryptedSelf?.length ?: 0 > 0 }
 
         if (decryptor != null && toBeDecryptedServices?.size ?: 0 > 0) {
-            val decryptedServices = decryptor.decrypt(toBeDecryptedServices?.map { mapper!!.map(it, ServiceDto::class.java) }, ServiceDto::class.java).get().map { mapper!!.map(it, Service::class.java) }
+
+            val decryptedServices  =  mutableListOf<Service>()
+
+            val chunkedToBeDecryptedServices = toBeDecryptedServices?.chunked(50)
+
+            chunkedToBeDecryptedServices?.forEach { itt ->
+                val decryptedServicesChunk = decryptor.decrypt(itt?.map { mapper!!.map(it, ServiceDto::class.java) }, ServiceDto::class.java).get().map { mapper!!.map(it, Service::class.java) }
+                decryptedServices.addAll(decryptedServicesChunk)
+            }
+
             services = services?.map { if (toBeDecryptedServices?.contains(it) == true) decryptedServices[toBeDecryptedServices.indexOf(it)] else it }
-            services = services?.filter(Objects::nonNull)
         }
 
-        return services ?: emptyList()
+        return services?.distinctBy{s -> s.contactId + s.id} ?: emptyList()
     }
 
 
