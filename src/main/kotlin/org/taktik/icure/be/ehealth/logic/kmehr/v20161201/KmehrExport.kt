@@ -166,17 +166,17 @@ open class KmehrExport {
             ids.add(IDKMEHR().apply {s = IDKMEHRschemes.ID_KMEHR; sv = "1.0"; value = idx.toString()})
             ids.add(IDKMEHR().apply {s = IDKMEHRschemes.LOCAL; sl = localIdName; sv = ICUREVERSION; value = svc.id })
             cds.add(CDITEM().apply {s(CDITEMschemes.CD_ITEM); value = cdItem } )
-			svc.tags.find { t -> t.type == "CD-LAB" }?.let { cds.add(CDITEM().apply {s(CDITEMschemes.CD_LAB); value = it.code } ) }
+            svc.tags.find { t -> t.type == "CD-LAB" }?.let { cds.add(CDITEM().apply {s(CDITEMschemes.CD_LAB); value = it.code } ) }
 
             this.contents.addAll(filterEmptyContent(contents))
             lifecycle = LifecycleType().apply {cd = CDLIFECYCLE().apply {s = "CD-LIFECYCLE"
                 value = if (ServiceStatus.isIrrelevant(svc.status) || (svc.closingDate ?: 99999999 <= FuzzyValues.getCurrentFuzzyDate())) {
-					CDLIFECYCLEvalues.INACTIVE
+                    CDLIFECYCLEvalues.INACTIVE
                 } else {
                     svc.tags.find { t -> t.type == "CD-LIFECYCLE" }?.let { CDLIFECYCLEvalues.fromValue(it.code) }
                             ?: if(cdItem == "medication") CDLIFECYCLEvalues.PRESCRIBED else CDLIFECYCLEvalues.ACTIVE
                 }
-			} }
+            } }
             if(cdItem == "medication") {
                 svc.tags.find { it.type == "CD-TEMPORALITY" && it.code != null }?.let {
                     temporality = TemporalityType().apply {
@@ -233,6 +233,97 @@ open class KmehrExport {
                     }
                     med.drugRoute?.let { c ->
                         route = RouteType().apply { cd = CDDRUGROUTE().apply { s = "CD-DRUG-ROUTE"; value = c } }
+                    }
+                }
+            }
+
+            isIsrelevant = ServiceStatus.isRelevant(svc.status)
+            beginmoment = (svc.valueDate ?: svc.openingDate)?.let { if(it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }
+            endmoment = svc.closingDate?.let { if(it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }
+            recorddatetime = makeXGC(svc.modified)
+        }
+    }
+
+    open fun createItemWithContent(svc: Service, idx: Int, cdItem: String, contents: List<ContentType>, localIdName: String = "iCure-Service", lang: String = "fr") : ItemType? {
+        return ItemType().apply {
+            ids.add(IDKMEHR().apply {s = IDKMEHRschemes.ID_KMEHR; sv = "1.0"; value = idx.toString()})
+            ids.add(IDKMEHR().apply {s = IDKMEHRschemes.LOCAL; sl = localIdName; sv = ICUREVERSION; value = svc.id })
+            cds.add(CDITEM().apply {s(CDITEMschemes.CD_ITEM); value = cdItem } )
+            svc.tags.find { t -> t.type == "CD-LAB" }?.let { cds.add(CDITEM().apply {s(CDITEMschemes.CD_LAB); value = it.code } ) }
+
+            this.contents.addAll(filterEmptyContent(contents))
+            lifecycle = LifecycleType().apply {cd = CDLIFECYCLE().apply {s = "CD-LIFECYCLE"
+                value = if (ServiceStatus.isIrrelevant(svc.status) || (svc.closingDate ?: 99999999 <= FuzzyValues.getCurrentFuzzyDate())) {
+                    CDLIFECYCLEvalues.INACTIVE
+                } else {
+                    svc.tags.find { t -> t.type == "CD-LIFECYCLE" }?.let { CDLIFECYCLEvalues.fromValue(it.code) }
+                            ?: if(cdItem == "medication") CDLIFECYCLEvalues.PRESCRIBED else CDLIFECYCLEvalues.ACTIVE
+                }
+            } }
+            if(cdItem == "medication") {
+                svc.tags.find { it.type == "CD-TEMPORALITY" && it.code != null }?.let {
+                    temporality = TemporalityType().apply {
+                        cd = CDTEMPORALITY().apply { s = "CD-TEMPORALITY"; value = CDTEMPORALITYvalues.fromValue(it.code.toLowerCase()) }
+                    }
+                }
+                svc.content.entries.mapNotNull { it.value.medicationValue }.firstOrNull()?.let { med ->
+                    KmehrPrescriptionHelper.inferPeriodFromRegimen(med.regimen, med.frequency)?.let {
+                        frequency = KmehrPrescriptionHelper.mapPeriodToFrequency(it)
+                    }
+                    duration = KmehrPrescriptionHelper.toDurationType(med.duration)
+                    med.regimen?.let { intakes ->
+                        if (intakes.isNotEmpty()) {
+                            regimen = ItemType.Regimen().apply {
+                                for (intake in intakes) {
+                                    // choice day specification
+                                    intake.dayNumber?.let { dayNumber -> daynumbersAndQuantitiesAndDates.add(BigInteger.valueOf(dayNumber.toLong())) }
+                                    intake.date?.let { d -> daynumbersAndQuantitiesAndDates.add(Utils.makeXMLGregorianCalendarFromFuzzyLong(d)) }
+                                    intake.weekday?.let { day ->
+                                        daynumbersAndQuantitiesAndDates.add(ItemType.Regimen.Weekday().apply {
+                                            day.weekday?.let { dayOfWeek ->
+                                                cd = CDWEEKDAY().apply { s = "CD-WEEKDAY"; value = CDWEEKDAYvalues.fromValue(dayOfWeek.code) }
+                                            }
+                                            day.weekNumber?.let { n -> weeknumber = BigInteger.valueOf(n.toLong()) }
+                                        })
+                                    }
+                                    // choice time of day
+                                    daynumbersAndQuantitiesAndDates.add(KmehrPrescriptionHelper.toDaytime(intake))
+
+                                    // mandatory quantity
+                                    intake.administratedQuantity?.let { drugQuantity ->
+                                        daynumbersAndQuantitiesAndDates.add(AdministrationquantityType().apply {
+                                            decimal = drugQuantity.quantity?.let { BigDecimal(it) }
+                                            drugQuantity.administrationUnit?.let { drugUnit ->
+                                                unit = AdministrationunitType().apply {
+                                                    cd = CDADMINISTRATIONUNIT().apply {
+                                                        s = "CD-ADMINISTRATIONUNIT"
+                                                        sv = "1.2"
+                                                        value = drugUnit.code
+                                                    }
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    med.renewal?.let {
+                        renewal = RenewalType().apply {
+                            it.decimal?.let { decimal = BigDecimal(it.toLong()) }
+                            duration = KmehrPrescriptionHelper.toDurationType(it.duration)
+                        }
+                    }
+                    med.drugRoute?.let { c ->
+                        route = RouteType().apply { cd = CDDRUGROUTE().apply { s = "CD-DRUG-ROUTE"; value = c } }
+                    }
+                    med.instructionForPatient?.let{
+                        instructionforpatient = TextType().apply { l = lang; value = it }
+                    }
+                    if(med.posology == null){
+                        med.posologyText?.let{
+                            posology = ItemType.Posology().apply{text = TextType().apply {l = lang; value = it}}
+                        }
                     }
                 }
             }

@@ -150,6 +150,7 @@ class MedicationSchemeExport : KmehrExport() {
                 date = config.date
                 time = config.time
                 author = AuthorType().apply {
+                    //
                     hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(patient.author?.let { userLogic!!.getUser(it).healthcarePartyId } ?: healthcareParty.id)))
                 }
                 isIscomplete = true
@@ -171,7 +172,7 @@ class MedicationSchemeExport : KmehrExport() {
                                 }})
                             })
                         },
-                        createItemWithContent(svc, itemsIdx++, "medication", listOf(makeContent(language, cnt)!!))))
+                        createItemWithContent(svc, itemsIdx++, "medication", listOf(makeContent(language, cnt)!!), "iCure-Service", language)))
                 //TODO: handle treatmentsuspension
                 //      ITEM: transactionreason: Text
                 //      ITEM: medication contains Link to medication <lnk TYPE="isplannedfor" URL="//transaction[id[@S='ID-KMEHR']='18']"/>

@@ -30,7 +30,7 @@ public class MedicationSchemeExportInfoDto implements Serializable {
 	HealthcarePartyDto recipient;
 	String comment;
 	Integer version;
-	String recepientSafe;
+	String recipientSafe;
 
 	public List<String> getSecretForeignKeys() {
 		return secretForeignKeys;
@@ -68,11 +68,11 @@ public class MedicationSchemeExportInfoDto implements Serializable {
         this.version = version;
     }
 
-    public String getRecepientSafe() {
-        return recepientSafe;
+    public String getRecipientSafe() {
+        return recipientSafe;
     }
 
-    public void setRecepientSafe(String recepientSafe) {
-        this.recepientSafe = recepientSafe;
+    public void setRecipientSafe(String recipientSafe) {
+        this.recipientSafe = recipientSafe;
     }
 }

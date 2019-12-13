@@ -227,7 +227,7 @@ public class KmehrWsFacade {
 		try {
 			medicationSchemeLogic.createMedicationSchemeExport(bos, patientLogic.getPatient(patientId), info.getSecretForeignKeys(),
 					healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentSessionContext().getUser().getHealthcarePartyId()),
-					language, info.getRecepientSafe(), info.getVersion(), operation, null);
+					language, info.getRecipientSafe(), info.getVersion(), operation, null);
 			operation.binaryResponse(ByteBuffer.wrap(bos.toByteArray()));
 			bos.close();
 		} catch (Exception e) {

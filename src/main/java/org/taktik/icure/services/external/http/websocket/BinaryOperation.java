@@ -20,6 +20,9 @@ package org.taktik.icure.services.external.http.websocket;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,8 +53,10 @@ public abstract class BinaryOperation implements Operation, AsyncProgress {
 		ed.put("localizedMessage",e.getLocalizedMessage());
 
 		log.info("Error in socket " + e.getMessage() + ":" +e.getLocalizedMessage() + " ", e);
+        Charset charset = Charset.forName("UTF-8");
+        CharsetEncoder encoder = charset.newEncoder();
 
-		if (webSocket.getRemote() != null) { webSocket.getRemote().sendString(gsonMapper.toJson(ed)); }
+        if (webSocket.getRemote() != null) { webSocket.getRemote().sendBytes( encoder.encode(CharBuffer.wrap(gsonMapper.toJson(ed)))); }
 	}
 
 	@Override
