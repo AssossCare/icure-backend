@@ -321,7 +321,7 @@ open class KmehrExport {
                         instructionforpatient = TextType().apply { l = lang; value = it }
                     }
                     //TODO do not include posology when regimen is present
-                    if(!regimen.daynumbersAndQuantitiesAndDates.isNotEmpty() && med.posology == null){
+                    if(regimen != null && med.posology == null){
                         med.posologyText?.let{
                             posology = ItemType.Posology().apply{text = TextType().apply {l = lang; value = it}}
                         }
