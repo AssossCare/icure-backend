@@ -134,8 +134,8 @@ class MedicationSchemeExport : KmehrExport() {
 			isIscomplete = true
 			isIsvalidated = true
 
-            //TODO: decide what tho do with the Version On Safe
-            this.version = (version ?: (_medicationSchemeSafeVersion ?: 0)+1).toString()
+            //The version of the scheme to upload must be the same as the version on the safe, the version is incremented by the safe
+            this.version = (version ?: (_medicationSchemeSafeVersion ?: 0)).toString()
 		})
 
         folder.transactions.addAll(medicationServices.map { svc ->
@@ -319,7 +319,7 @@ class MedicationSchemeExport : KmehrExport() {
             services = services?.map { if (toBeDecryptedServices?.contains(it) == true) decryptedServices[toBeDecryptedServices.indexOf(it)] else it }
         }
 
-        return services?.distinctBy{s -> s.contactId + s.id} ?: emptyList()
+        return services?.filterNotNull()?.distinctBy{s -> s.contactId + s.id} ?: emptyList()
     }
 
 
