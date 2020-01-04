@@ -139,9 +139,18 @@ class MedicationSchemeExport : KmehrExport() {
                 cds.add(CDTRANSACTION().apply { s = CDTRANSACTIONschemes.CD_TRANSACTION; sv = "1.10"; value = "medicationschemeelement" })
                 date = config.date
                 time = config.time
-                author = AuthorType().apply {
-                    hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(svc.author?.let { userLogic!!.getUser(it).healthcarePartyId } ?: healthcareParty.id)))
+                var tmp = serviceAuthors?.find{aut -> aut.id == svc.author}
+
+                if(tmp != null){
+                    author = AuthorType().apply {
+                        hcparties.add(createParty(tmp))
+                    }
+                }else {
+                    author = AuthorType().apply {
+                        hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(svc.author?.let { userLogic!!.getUser(it).healthcarePartyId } ?: healthcareParty.id)))
+                    }
                 }
+
                 isIscomplete = true
                 isIsvalidated = true
 
