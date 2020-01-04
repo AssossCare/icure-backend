@@ -56,6 +56,7 @@ class MedicationSchemeExport : KmehrExport() {
             recipientSafe: String?,
             version: Int?,
             services: List<Service>?,
+            serviceAuthors: List<HealthcareParty>?,
 			decryptor: AsyncDecrypt?,
 			progressor: AsyncProgress?,
 			config: Config = Config(_kmehrId = System.currentTimeMillis().toString(),
@@ -75,7 +76,7 @@ class MedicationSchemeExport : KmehrExport() {
 		})
 
 		// TODO split marshalling
-		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getActiveServices(sender.id, sfks, listOf("medication"), decryptor), decryptor, progressor))
+		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getActiveServices(sender.id, sfks, listOf("medication"), decryptor), serviceAuthors, decryptor, progressor))
 
         val jaxbMarshaller = JAXBContext.newInstance(Kmehrmessage::class.java).createMarshaller()
 
@@ -88,7 +89,7 @@ class MedicationSchemeExport : KmehrExport() {
 
 
 	private fun makePatientFolder(patientIndex: Int, patient: Patient, version: Int?, healthcareParty: HealthcareParty,
-                                  config: Config, language: String, medicationServices: List<Service>, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
+                                  config: Config, language: String, medicationServices: List<Service>, serviceAuthors: List<HealthcareParty>?, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
 
 		//creation of Patient
         val folder = FolderType().apply {

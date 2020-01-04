@@ -246,6 +246,8 @@ class KmehrFacade(
 		return if (medicationSchemeExportParams.services?.isNotEmpty() == true)
             ResponseUtils.ok(StreamingOutput { output -> medicationSchemeLogic.createMedicationSchemeExport(output!!, patientLogic.getPatient(patientId), userHealthCareParty, language ?: "fr", recipientSafe, version, medicationSchemeExportParams.services!!.map {
                 s -> mapper.map(s, Service::class.java) as Service
+            }, medicationSchemeExportParams.serviceAuthors!!.map {
+                s -> mapper.map(s, HealthcareParty::class.java) as HealthcareParty
             }, null) })
         else
             ResponseUtils.ok(StreamingOutput { output -> medicationSchemeLogic.createMedicationSchemeExport(output!!, patientLogic.getPatient(patientId), medicationSchemeExportParams.secretForeignKeys, userHealthCareParty, language ?: "fr", recipientSafe, version, null, null) })
