@@ -33,6 +33,8 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.taktik.icure.services.external.api.AsyncDecrypt;
 import org.taktik.icure.services.external.rest.v1.dto.embed.ServiceDto;
 
+import static com.sun.org.apache.xalan.internal.xsltc.compiler.util.Util.println;
+
 public class KmehrFileOperation extends BinaryOperation implements AsyncDecrypt {
 	private Map<String,DecodingSession> decodingSessions = new HashMap<>();
 
@@ -65,6 +67,8 @@ public class KmehrFileOperation extends BinaryOperation implements AsyncDecrypt 
                     try {
                         return gsonMapper.fromJson(e.getAsJsonObject(), decodingSession.getClazz());
                     } catch (com.google.gson.JsonSyntaxException ee) {
+                        return null;
+                    } catch (java.lang.NumberFormatException ee){
                         return null;
                     }
                 }).collect(Collectors.toList()));

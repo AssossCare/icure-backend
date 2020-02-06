@@ -630,13 +630,13 @@ class SoftwareMedicalFileExport : KmehrExport() {
 	}
 
 
-	private fun makeEncounterDateTime(index: Int, yyyymmddhhmmss: Long): ItemType {
+	private fun makeEncounterDateTime(index: Int, timestamp: Long): ItemType {
 		return ItemType().apply {
 			ids.add(idKmehr(index))
 			cds.add(cdItem("encounterdatetime"))
 			contents.add(ContentType().apply {
-				date = makeXMLGregorianCalendarFromFuzzyLong(yyyymmddhhmmss)
-				time = makeXMLGregorianCalendarFromFuzzyLong(yyyymmddhhmmss)?.apply {
+				date = makeXGC(timestamp)
+				time = makeXGC(timestamp)?.apply {
 					if (hour == DatatypeConstants.FIELD_UNDEFINED) {
 						hour = 0
 					}
@@ -733,7 +733,7 @@ class SoftwareMedicalFileExport : KmehrExport() {
 	}
 
 	private fun getLastGmdManager(pat: Patient): Pair<HealthcareParty?, ReferralPeriod?> {
-		val isActive: (ReferralPeriod) -> Boolean = { r -> r.startDate.isBefore(Instant.now()) && null == r.endDate }
+		val isActive: (ReferralPeriod) -> Boolean = { r ->r.startDate!==null &&  r.startDate.isBefore(Instant.now()) && null == r.endDate }
 		val gmdRelationship = pat.patientHealthCareParties?.find { it.referralPeriods?.any(isActive) ?: false }
 		if (gmdRelationship == null) {
 			return Pair(null, null)
