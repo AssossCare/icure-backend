@@ -960,7 +960,7 @@ class SoftwareMedicalFileImport(val patientLogic: PatientLogic,
             this.closingDate = item.endmoment?.let { Utils.makeFuzzyLongFromMomentType(it) }
             this.created = item.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli()
             this.modified = this.created
-            item.lifecycle?.let { this.tags.add(CodeStub( "CD-LIFECYCLE", it.cd.value.value(), "1")) }
+            item.lifecycle?.let { this.tags.add(CodeStub( "CD-LIFECYCLE", it.cd?.value?.value(), "1")) }
             this.status = ((item.lifecycle?.cd?.value?.value()?.let { if (it == "inactive" ||it == "aborted" || it == "canceled") 1 else if (it == "notpresent" || it == "excluded") 4 else 0 } ?: 0) + if(item.isIsrelevant != true) 2 else 0)
             this.content = mapOf(language to Content().apply {
                 when {
@@ -977,7 +977,7 @@ class SoftwareMedicalFileImport(val patientLogic: PatientLogic,
                             medicinalProduct = item.contents.firstOrNull { it.medicinalproduct != null }?.let {
                                 it.medicinalproduct?.let { Medicinalproduct().apply {
                                     intendedcds = it.intendedcds?.map { CodeStub( it.s.value(), it.value, it.sv) }
-                                    intendedname = it.intendedname.toString()
+                                    intendedname = it.intendedname?.toString()
                                 } } }
                             compoundPrescription = item.contents.firstOrNull {
                                 it.compoundprescription?.content?.isNotEmpty() ?: false
