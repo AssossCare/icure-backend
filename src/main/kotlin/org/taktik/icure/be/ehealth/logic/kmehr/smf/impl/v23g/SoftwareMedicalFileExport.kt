@@ -171,7 +171,9 @@ class SoftwareMedicalFileExport : KmehrExport() {
         // in PMF, we only want the last version, older versions are removed from servicesByContactId
         servicesByContactId = contacts.map { con ->
             con.id to con.services.toList().map { svc ->
-                newestServicesById[svc.id!!] = svc
+                if(svc != null && !svc.id.isNullOrEmpty()){
+                    newestServicesById[svc.id!!] = svc
+                }
                 svc
             }
         }.toMap()
@@ -388,7 +390,7 @@ class SoftwareMedicalFileExport : KmehrExport() {
 												this.contents.add( ContentType().apply { texts.add(TextType().apply { l = language; value = it }) })
 											}
 										}
-                                        if(itemByServiceId[svc.id!!] != null && config.format != Config.Format.PMF) {
+                                        if(svc != null && !svc.id.isNullOrEmpty() && itemByServiceId[svc.id!!] != null && config.format != null && config.format != Config.Format.PMF) {
                                             // this is a new version of and older service, add a link
                                             // no history in PMF
                                             lnks.add(
@@ -398,7 +400,9 @@ class SoftwareMedicalFileExport : KmehrExport() {
                                             )
                                         }
 
-                                        itemByServiceId[svc.id!!] = this
+                                        if(svc != null && !svc.id.isNullOrEmpty()){
+                                            itemByServiceId[svc.id!!] = this
+                                        }
 										headingsAndItemsAndTexts.add(this)
 									}
 								}
