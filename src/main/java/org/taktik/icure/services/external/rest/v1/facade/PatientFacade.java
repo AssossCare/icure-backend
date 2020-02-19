@@ -18,6 +18,7 @@
 
 package org.taktik.icure.services.external.rest.v1.facade;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Splitter;
 import com.google.gson.Gson;
 import io.swagger.annotations.Api;
@@ -29,6 +30,7 @@ import org.ektorp.ComplexKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.taktik.icure.db.PaginatedList;
 import org.taktik.icure.db.PaginationOffset;
@@ -52,6 +54,7 @@ import org.taktik.icure.services.external.rest.v1.dto.IdWithRevDto;
 import org.taktik.icure.services.external.rest.v1.dto.ListOfIdsDto;
 import org.taktik.icure.services.external.rest.v1.dto.PaginatedDocumentKeyIdPair;
 import org.taktik.icure.services.external.rest.v1.dto.PatientDto;
+import org.taktik.icure.services.external.rest.v1.dto.PatientDuplicateDto;
 import org.taktik.icure.services.external.rest.v1.dto.PatientPaginatedList;
 import org.taktik.icure.services.external.rest.v1.dto.embed.AddressDto;
 import org.taktik.icure.services.external.rest.v1.dto.embed.ContentDto;
@@ -74,6 +77,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,7 +136,7 @@ public class PatientFacade implements OpenApiFacade{
         @SuppressWarnings("unchecked") PaginationOffset paginationOffset = new PaginationOffset(startKeyElements, startDocumentId, null, limit);
 
 	    HealthcareParty hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId());
-	    PaginatedList<Patient> patients = patientLogic.findByHcPartyAndSsinOrDateOfBirthOrNameContainsFuzzy(hcp.getParentId() != null ? hcp.getParentId() : hcp.getId(), paginationOffset, filterValue, new Sorting(null, sortDirection));
+	    PaginatedList<Patient> patients = patientLogic.findByHcPartyAndSsinOrDateOfBirthOrNameContainsFuzzy(!StringUtils.isEmpty(hcp.getParentId()) ? hcp.getParentId() : hcp.getId(), paginationOffset, filterValue, new Sorting(null, sortDirection));
 
 	    if (patients != null) {
 		    response = buildPaginatedListResponse(patients);
@@ -309,11 +313,10 @@ public class PatientFacade implements OpenApiFacade{
 			limit);
 
 		HealthcareParty hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId());
-		PaginatedList<Patient> patients = patientLogic.findByHcPartyAndSsinOrDateOfBirthOrNameContainsFuzzy(hcp.getParentId() != null ? hcp.getParentId() : hcp.getId(), paginationOffset, null, new Sorting(sortField, sortDirection));
+		PaginatedList<Patient> patients = patientLogic.findByHcPartyAndSsinOrDateOfBirthOrNameContainsFuzzy(!StringUtils.isEmpty(hcp.getParentId()) ? hcp.getParentId() : hcp.getId(), paginationOffset, null, new Sorting(sortField, sortDirection));
 
 		if (patients != null) {
 			response = buildPaginatedListResponse(patients);
-
 		} else {
 			response = ResponseUtils.internalServerError("Listing patients failed.");
 		}
@@ -821,6 +824,100 @@ public class PatientFacade implements OpenApiFacade{
 
 		return response;
 	}
+
+@ApiOperation(
+            value = "Get duplicate patients by SSIN",
+           	response = PatientPaginatedList.class,
+			httpMethod = "POST",
+			notes = "Returns a list of duplicate patients by SSIN"
+    )
+    @POST
+    @Path("/duplicates/ssin")
+    public Response findDuplicatesBySsin(
+        @ApiParam(value = "Healthcare party id") @QueryParam("hcPartyId") String hcPartyId,
+        @ApiParam(value = "The start key for pagination, depends on the filters used") @QueryParam("startKey") String startKey,
+        @ApiParam(value = "Number of rows") @QueryParam("limit") Integer limit
+    )
+    {
+      if (hcPartyId == null) {
+        return Response.status(400).type("text/plain").entity("A required query parameter was not specified for this request.").build();
+      }
+
+      Response response;
+
+      String[] startKeyElements = startKey!=null && startKey.length() > 0 ?  new Gson().fromJson(startKey, String[].class) : null;
+      PaginationOffset paginationOffset = new PaginationOffset(startKeyElements, null, null, limit);
+      PaginatedList<Patient> patients = null;
+      try {
+        patients = patientLogic.getDuplicatePatientsBySsin(hcPartyId, paginationOffset);
+
+        boolean succeed = (patients!=null);
+        if (succeed) {
+          response = buildPatientDuplicatePaginatedList(patients);
+        } else {
+          response = Response.status(500).type("text/plain").entity("Getting duplicate patients failed. Please try again or read the server log.").build();
+        }
+      } catch (JsonProcessingException e) {
+        response = Response.status(400).type("text/plain").entity(e.getMessage()).build();
+      }
+
+      return response;
+    }
+
+    @ApiOperation(
+        value = "Get duplicate patients by name",
+        response = PatientPaginatedList.class,
+        httpMethod = "POST",
+        notes = "Returns a list of duplicate patients by name"
+    )
+    @POST
+    @Path("/duplicates/name")
+    public Response findDuplicatesByName(
+        @ApiParam(value = "Healthcare party id") @QueryParam("hcPartyId") String hcPartyId,
+        @ApiParam(value = "The start key for pagination, depends on the filters used") @QueryParam("startKey") String startKey,
+        @ApiParam(value = "Number of rows") @QueryParam("limit") Integer limit
+    )
+    {
+      if (hcPartyId == null) {
+        return Response.status(400).type("text/plain").entity("A required query parameter was not specified for this request.").build();
+      }
+
+      Response response;
+
+      String[] startKeyElements = startKey!=null && startKey.length() > 0 ?  new Gson().fromJson(startKey, String[].class) : null;
+      PaginationOffset paginationOffset = new PaginationOffset(startKeyElements, null, null, limit);
+      PaginatedList<Patient> patients = null;
+      try {
+        patients = patientLogic.getDuplicatePatientsByName(hcPartyId, paginationOffset);
+
+        boolean succeed = (patients!=null);
+        if (succeed) {
+          response = buildPatientDuplicatePaginatedList(patients);
+        } else {
+          response = Response.status(500).type("text/plain").entity("Getting duplicate patients failed. Please try again or read the server log.").build();
+        }
+      } catch (JsonProcessingException e) {
+        response = Response.status(400).type("text/plain").entity(e.getMessage()).build();
+      }
+
+      return response;
+    }
+
+    private Response buildPatientDuplicatePaginatedList(PaginatedList<Patient> patients) {
+      Response response;
+      if (patients.getRows()==null) {
+        patients.setRows(new ArrayList<>());
+      }
+
+      org.taktik.icure.services.external.rest.v1.dto.PaginatedList<PatientDuplicateDto> paginatedPatientDtoList =
+          new org.taktik.icure.services.external.rest.v1.dto.PaginatedList<>();
+      mapper.map(patients, paginatedPatientDtoList, new TypeBuilder<PaginatedList<Patient>>() {
+          }.build(),
+          new TypeBuilder<org.taktik.icure.services.external.rest.v1.dto.PaginatedList<PatientDuplicateDto>>() {
+          }.build());
+      response = ResponseUtils.ok(paginatedPatientDtoList);
+      return response;
+    }
 
     @Context
     public void setMapper(MapperFacade mapper) {

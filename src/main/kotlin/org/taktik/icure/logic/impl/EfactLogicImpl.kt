@@ -34,6 +34,7 @@ import org.taktik.icure.services.external.rest.v1.dto.be.efact.InvoicingSideCode
 import org.taktik.icure.services.external.rest.v1.dto.be.efact.InvoicingTimeOfDay
 import org.taktik.icure.services.external.rest.v1.dto.be.efact.InvoicingTreatmentReasonCode
 import org.taktik.icure.services.external.rest.v1.dto.be.efact.MessageWithBatch
+import org.taktik.icure.utils.FuzzyValues
 import java.math.BigInteger
 import java.time.Instant
 import java.time.ZoneId
@@ -260,7 +261,7 @@ class EfactLogicImpl(val idg : UUIDGenerator, val mapper: MapperFacade, val enti
         synchronized(this) {
             var zonedDateTime = ZonedDateTime.now().minusDays(1)
             for (invoice in invoices.values.flatten()) {
-                val invoiceDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(invoice.invoiceDate!!), ZoneId.systemDefault())
+                val invoiceDateTime = ZonedDateTime.of(FuzzyValues.getDateTime(invoice.invoiceDate!!), ZoneId.systemDefault())
                 if (invoiceDateTime.isAfter(zonedDateTime)) {
                     zonedDateTime = invoiceDateTime
                 }
@@ -324,11 +325,11 @@ class EfactLogicImpl(val idg : UUIDGenerator, val mapper: MapperFacade, val enti
         messageLogic.modifyMessage(msg)
         if (msg.parentId != null) {
             val parent = messageLogic.get(msg.parentId)
-            parent.setStatus(parent.getStatus() or Message.STATUS_ACCEPTED_FOR_TREATMENT)
+            parent.status = parent.status or Message.STATUS_ACCEPTED_FOR_TREATMENT
             messageLogic.modifyMessage(parent)
-            if (parent.getParentId() != null) {
-                val parentParent = messageLogic.get(parent.getParentId())
-                parentParent.setStatus(parent.getStatus() or Message.STATUS_ACCEPTED_FOR_TREATMENT)
+            if (parent.parentId != null) {
+                val parentParent = messageLogic.get(parent.parentId)
+                parentParent.status = parent.status or Message.STATUS_ACCEPTED_FOR_TREATMENT
                 messageLogic.modifyMessage(parentParent)
             }
         }
@@ -340,15 +341,15 @@ class EfactLogicImpl(val idg : UUIDGenerator, val mapper: MapperFacade, val enti
         messageLogic.modifyMessage(msg)
         if (msg.parentId != null) {
             val parent = messageLogic.get(msg.parentId)
-            parent.setStatus(parent.getStatus() or Message.STATUS_REJECTED)
-            parent.setStatus(parent.getStatus() or Message.STATUS_FULL_ERROR)
+            parent.status = parent.status or Message.STATUS_REJECTED
+            parent.status = parent.status or Message.STATUS_FULL_ERROR
             messageLogic.modifyMessage(parent)
-            if (parent.getParentId() != null) {
-                val parentParent = messageLogic.get(parent.getParentId())
-                parentParent.setStatus(parentParent.getStatus() or Message.STATUS_REJECTED)
-                parentParent.setStatus(parentParent.getStatus() or Message.STATUS_FULL_ERROR)
+            if (parent.parentId != null) {
+                val parentParent = messageLogic.get(parent.parentId)
+                parentParent.status = parentParent.status or Message.STATUS_REJECTED
+                parentParent.status = parentParent.status or Message.STATUS_FULL_ERROR
                 messageLogic.modifyMessage(parentParent)
-                val invoices = invoiceLogic.getInvoices(Optional.of<List<String>>(parentParent.getInvoiceIds()).orElse(LinkedList()))
+                val invoices = invoiceLogic.getInvoices(Optional.of<List<String>>(parentParent.invoiceIds).orElse(LinkedList()))
                 for (iv in invoices) {
                     for (ic in iv.invoicingCodes) {
                         val uuid = UUID.fromString(ic.id)
@@ -362,5 +363,4 @@ class EfactLogicImpl(val idg : UUIDGenerator, val mapper: MapperFacade, val enti
         }
         return LinkedList()
     }
-
 }

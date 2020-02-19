@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.taktik.commons.uti.UTI
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDHCPARTYschemes
+import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDMESSAGEvalues
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDTRANSACTIONschemes
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.LnkType
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.dt.v1.TextType
@@ -67,13 +68,21 @@ class KmehrReportLogicImpl : GenericResultFormatLogicImpl(), KmehrReportLogic {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-
-
     @Throws(IOException::class)
 	override fun canHandle(doc: Document, enckeys: MutableList<String>?): Boolean {
 		val msg: Kmehrmessage? = extractMessage(doc, enckeys)
 
-		return msg?.folders?.any { it.transactions.any { it.cds.any { it.s == CDTRANSACTIONschemes.CD_TRANSACTION && (it.value == "contactreport" || it.value == "note" || it.value == "report" || it.value == "prescription" || it.value == "request") } } } ?: false
+        val isSmfOrPmf = msg?.header?.standard?.specialisation?.cd?.value?.let {
+            it == CDMESSAGEvalues.GPPATIENTMIGRATION || it == CDMESSAGEvalues.GPSOFTWAREMIGRATION
+        } ?: false
+
+		return !isSmfOrPmf && msg?.folders?.any {
+            it.transactions.any {
+                it.cds.any {
+                    it.s == CDTRANSACTIONschemes.CD_TRANSACTION && (it.value == "contactreport" || it.value == "note" || it.value == "report" || it.value == "prescription" || it.value == "request")
+                }
+            }
+        } ?: false
     }
 
 	@Throws(IOException::class)
@@ -84,10 +93,10 @@ class KmehrReportLogicImpl : GenericResultFormatLogicImpl(), KmehrReportLogic {
 			ssin = f.patient.ids.find { it.s == IDPATIENTschemes.INSS }?.value
 			lastName = f.patient.familyname
 			firstName = f.patient.firstnames.firstOrNull()
-			dateOfBirth = f.patient.birthdate.date?. let { FuzzyValues.getFuzzyDateTime(LocalDateTime.of(it.year, it.month, it.day, 0, 0), ChronoUnit.DAYS) }
+			dateOfBirth = f.patient.birthdate.date?. let { FuzzyValues.getFuzzyDate(LocalDateTime.of(it.year, it.month, it.day, 0, 0), ChronoUnit.DAYS) }
 			sex = f.patient.sex?.cd?.value?.value() ?:"unknown"
 			documentId = doc.id
-			protocol = t.ids.find { it.s == IDKMEHRschemes.ID_KMEHR }?.value
+			protocol = t.ids.find { it.s == IDKMEHRschemes.LOCAL }?.value
 			complete = t.isIscomplete
 			labo = getAuthorDescription(t)
 			demandDate = demandEpochMillis(t)
@@ -107,8 +116,8 @@ class KmehrReportLogicImpl : GenericResultFormatLogicImpl(), KmehrReportLogic {
 		val msg: Kmehrmessage? = extractMessage(doc, enckeys)
 
 		msg?.folders?.forEach { f ->
-			f.transactions.filter { it.ids.any { it.s == IDKMEHRschemes.ID_KMEHR && protocolIds.contains(it.value) } }.forEach { t ->
-				val protocolId = t.ids.find { it.s == IDKMEHRschemes.ID_KMEHR }?.value
+			f.transactions.filter { it.ids.any { it.s == IDKMEHRschemes.LOCAL && protocolIds.contains(it.value) } }.forEach { t ->
+				val protocolId = t.ids.find { it.s == IDKMEHRschemes.LOCAL }?.value
 				val demandTimestamp = demandEpochMillis(t)
 
                 var s: Service? = null;

@@ -19,6 +19,7 @@
 package org.taktik.icure.services.external.rest.v1.facade;
 
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -125,19 +126,18 @@ public class AccessLogFacade implements OpenApiFacade{
 
 	@ApiOperation(response = AccessLogPaginatedList.class, value = "Lists access logs")
 	@GET
-	public Response listAccessLogs(@QueryParam("startKey") String startKey, @QueryParam("startDocumentId") String startDocumentId, @QueryParam("limit") String limit,  @QueryParam("descending") Boolean descending) {
+	public Response listAccessLogs(@QueryParam("fromEpoch") Long fromEpoch, @QueryParam("toEpoch") Long toEpoch, @QueryParam("startKey") String startKey, @QueryParam("startDocumentId") String startDocumentId, @QueryParam("limit") String limit,  @QueryParam("descending") Boolean descending) {
 		Response response;
 
 		PaginationOffset paginationOffset = new PaginationOffset<>(startKey != null ? Long.parseLong(startKey) : null, startDocumentId, null, limit != null ? Integer.valueOf(limit) : null);
 		PaginatedList<AccessLogDto> accessLogDtos = new PaginatedList<>();
 
-		org.taktik.icure.db.PaginatedList<AccessLog> accessLogs = accessLogLogic.listAccessLogs(paginationOffset, descending != null ? descending : false);
+		org.taktik.icure.db.PaginatedList<AccessLog> accessLogs = accessLogLogic.listAccessLogs(fromEpoch, toEpoch, paginationOffset, descending != null ? descending : false);
 		if (accessLogs != null) {
 			mapper.map(accessLogs, accessLogDtos, new TypeBuilder<org.taktik.icure.db.PaginatedList<AccessLog>>() {
 			}.build(), new TypeBuilder<PaginatedList<AccessLogDto>>() {
 			}.build());
 			response = ResponseUtils.ok(accessLogDtos);
-
 		} else {
 			response = ResponseUtils.internalServerError("AccessLog listing failed");
 		}
@@ -155,8 +155,9 @@ public class AccessLogFacade implements OpenApiFacade{
                                         @ApiParam(value = "Number of rows", required = false) @QueryParam("limit") Integer limit,
 										@ApiParam(value = "Descending order", required = false) @QueryParam("descending") Boolean descending) {
 
-        PaginationOffset paginationOffset = new PaginationOffset(startKey, startDocumentId, null, limit);
-        org.taktik.icure.db.PaginatedList<AccessLog> accessLogs = accessLogLogic.findByUserAfterDate(userId, accessType, Instant.ofEpochMilli(startDate), paginationOffset, descending!=null?descending:false);
+        List<String> startKeyElements = startKey == null ? null : new Gson().fromJson(startKey, List.class);
+        PaginationOffset paginationOffset = new PaginationOffset(startKeyElements, startDocumentId, null, limit);
+        org.taktik.icure.db.PaginatedList<AccessLog> accessLogs = accessLogLogic.findByUserAfterDate(userId, accessType, startDate != null ? Instant.ofEpochMilli(startDate) : null, paginationOffset, descending!=null?descending:false);
 
         if (accessLogs != null) {
             AccessLogPaginatedList accessLogDtos = new AccessLogPaginatedList();

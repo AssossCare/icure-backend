@@ -72,7 +72,7 @@ public class Message extends StoredICureDocument implements Serializable {
     public final static int STATUS_DRAFT = 1 << 23;
     public final static int STATUS_SCANNED = 1 << 24;
     public final static int STATUS_IMPORTED = 1 << 25;
-    public final static int STATUS_TRAITED = 1 << 26;
+    public final static int STATUS_TREATED = 1 << 26;
 
 	private String fromAddress;
 	private String fromHealthcarePartyId;
@@ -93,7 +93,7 @@ public class Message extends StoredICureDocument implements Serializable {
 	/*
 		CHAP4:IN:   ${Mycarenet message ref}
 		CHAP4:OUT:  ${Mycarenet message ref}
-		EFACT:BATCH:${iCure batch ref}
+		EFACT:BATCH:${Mycarenet message ref}
 		EFACT:IN:   ${Mycarenet message ref}
 		EFACT:OUT:  ${Mycarenet message ref}
 		GMD:IN:     ${Mycarenet message ref}
@@ -300,17 +300,6 @@ public class Message extends StoredICureDocument implements Serializable {
 
 	public String getExternalRef() {
 		return externalRef;
-	}
-
-	private String encryptedSelf;
-	@Override
-	public String getEncryptedSelf() {
-		return encryptedSelf;
-	}
-
-	@Override
-	public void setEncryptedSelf(String encryptedSelf) {
-		this.encryptedSelf = encryptedSelf;
 	}
 
 	public Map<String, String> getSenderReferences() {

@@ -19,26 +19,12 @@
 
 package org.taktik.icure.be.ehealth.logic.kmehr.medicationscheme.impl.v20161201
 
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.Utils.makeXGC
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDCONTENT
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDCONTENTschemes
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDHCPARTY
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDHCPARTYschemes
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDITEM
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDITEMschemes
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDTRANSACTION
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.CDTRANSACTIONschemes
+import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.cd.v1.*
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.dt.v1.TextType
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.id.v1.IDKMEHR
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.id.v1.IDKMEHRschemes
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.AuthorType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.ContentType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.FolderType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.HcpartyType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.ItemType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.Kmehrmessage
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.RecipientType
-import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.TransactionType
+import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.*
+import org.taktik.icure.be.ehealth.logic.kmehr.Config
 import org.taktik.icure.be.ehealth.logic.kmehr.v20161201.KmehrExport
 import org.taktik.icure.entities.HealthcareParty
 import org.taktik.icure.entities.Patient
@@ -67,7 +53,9 @@ class MedicationSchemeExport : KmehrExport() {
 			sfks: List<String>,
 			sender: HealthcareParty,
 			language: String,
-            version: Int,
+            recipientSafe: String?,
+            version: Int?,
+            services: List<Service>?,
 			decryptor: AsyncDecrypt?,
 			progressor: AsyncProgress?,
 			config: Config = Config(_kmehrId = System.currentTimeMillis().toString(),
@@ -82,12 +70,12 @@ class MedicationSchemeExport : KmehrExport() {
 		message.header.recipients.add(RecipientType().apply {
 			hcparties.add(HcpartyType().apply {
 				cds.add(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "application" })
-				name = "VITALINK" //TODO: should change based on selected hub
+				name = recipientSafe
 			})
 		})
 
 		// TODO split marshalling
-		message.folders.add(makePatientFolder(1, patient, sfks, version, sender, config, language, decryptor, progressor))
+		message.folders.add(makePatientFolder(1, patient, version, sender, config, language, services ?: getActiveServices(sender.id, sfks, listOf("medication"), decryptor), decryptor, progressor))
 
         val jaxbMarshaller = JAXBContext.newInstance(Kmehrmessage::class.java).createMarshaller()
 
@@ -99,8 +87,9 @@ class MedicationSchemeExport : KmehrExport() {
 	}
 
 
-	private fun makePatientFolder(patientIndex: Int, patient: Patient, sfks: List<String>, version: Int,
-								  healthcareParty: HealthcareParty, config: Config, language: String, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
+	private fun makePatientFolder(patientIndex: Int, patient: Patient, version: Int?, healthcareParty: HealthcareParty,
+                                  config: Config, language: String, medicationServices: List<Service>, decryptor: AsyncDecrypt?, progressor: AsyncProgress?): FolderType {
+
 		//creation of Patient
         val folder = FolderType().apply {
 			ids.add(idKmehr(patientIndex))
@@ -108,49 +97,37 @@ class MedicationSchemeExport : KmehrExport() {
 		}
 
         var idkmehrIdx = 1
-		folder.transactions.add(TransactionType().apply {
+
+        folder.transactions.add(TransactionType().apply {
 			ids.add(idKmehr(idkmehrIdx))
             idkmehrIdx++
             cds.add(CDTRANSACTION().apply { s = CDTRANSACTIONschemes.CD_TRANSACTION; sv = "1.10"; value = "medicationscheme" })
 			date = config.date
 			time = config.time
-			author = AuthorType().apply {
-				hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(patient.author?.let { userLogic!!.getUser(it).healthcarePartyId }
-						?: healthcareParty.id)))
-			}
-
-            var _idOnSafeName : String?
-            _idOnSafeName = "vitalinkuri"
-            var _idOnSafe : String?
-            _idOnSafe = "/subject/72022102793/medication-scheme"
-            var _medicationSchemeSafeVersion : Int?
-            _medicationSchemeSafeVersion = 22
+			author = AuthorType().apply { hcparties.add(createParty(healthcareParty, emptyList())) }
 
             //TODO: is there a way to quit the .map once we've found what we where looking for ? (or use something else ?)
-            getActiveServices(healthcareParty.id, sfks, listOf("medication"), decryptor).map { svc ->
-                svc.content.values.find{c -> c.medicationValue != null}?.let{cnt -> cnt.medicationValue?.let{m ->
-                    m.idOnSafes?.let{idOnSafe ->
-                        _idOnSafe = idOnSafe
-                        m.safeIdName?.let{idName ->
-                            _idOnSafeName = idName
-                        }
-                    }
-                    m.medicationSchemeSafeVersion?.let{safeVersion ->
-                        _medicationSchemeSafeVersion = safeVersion
-                    }
-                }}
-            }
-            _idOnSafeName?.let{idName ->
+            val (_idOnSafeName, _idOnSafe, _medicationSchemeSafeVersion) = medicationServices.flatMap { svc ->
+                svc.content.values.filter{c ->
+                            (c.medicationValue?.let { m ->
+                                m.idOnSafes != null && m.medicationSchemeSafeVersion != null
+                            } == true)
+                }.map{c -> c.medicationValue}
+            }.lastOrNull()?.let {
+                Triple("vitalinkuri", it.idOnSafes, it.medicationSchemeSafeVersion)
+            } ?: Triple("vitalinkuri", null, null)
+
+            _idOnSafe?.let{ idName ->
                 ids.add(IDKMEHR().apply { s = IDKMEHRschemes.LOCAL; sl = idName; sv = "1.0"; value = _idOnSafe})
             }
 			isIscomplete = true
 			isIsvalidated = true
 
             //TODO: decide what tho do with the Version On Safe
-            this.version = version.toString()
+            this.version = (version ?: (_medicationSchemeSafeVersion ?: 0)+1).toString()
 		})
 
-        folder.transactions.addAll(getActiveServices(healthcareParty.id, sfks, listOf("medication"), decryptor).map { svc ->
+        folder.transactions.addAll(medicationServices.map { svc ->
             svc.content.values.find { c -> c.medicationValue != null }?.let { cnt -> cnt.medicationValue?.let { m ->
             TransactionType().apply {
                 ids.add(idKmehr(idkmehrIdx))
@@ -162,7 +139,7 @@ class MedicationSchemeExport : KmehrExport() {
                 date = config.date
                 time = config.time
                 author = AuthorType().apply {
-                    hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(patient.author?.let { userLogic!!.getUser(it).healthcarePartyId } ?: healthcareParty.id)))
+                    hcparties.add(createParty(healthcarePartyLogic!!.getHealthcareParty(svc.author?.let { userLogic!!.getUser(it).healthcarePartyId } ?: healthcareParty.id)))
                 }
                 isIscomplete = true
                 isIsvalidated = true
@@ -183,7 +160,7 @@ class MedicationSchemeExport : KmehrExport() {
                                 }})
                             })
                         },
-                        createItemWithContent(svc, itemsIdx++, "medication", listOf(makeContent(language, cnt)!!))))
+                        createItemWithContent(svc, itemsIdx++, "medication", listOf(makeContent(language, cnt)!!), language = language)))
                 //TODO: handle treatmentsuspension
                 //      ITEM: transactionreason: Text
                 //      ITEM: medication contains Link to medication <lnk TYPE="isplannedfor" URL="//transaction[id[@S='ID-KMEHR']='18']"/>
@@ -249,15 +226,19 @@ class MedicationSchemeExport : KmehrExport() {
 
 
     private fun getActiveServices(hcPartyId: String, sfks: List<String>, cdItems: List<String>, decryptor: AsyncDecrypt?): List<Service> {
-        val f = Filters.UnionFilter(sfks.map { k ->
+        val hcPartyIds = healthcarePartyLogic!!.getHcpHierarchyIds(healthcarePartyLogic!!.getHealthcareParty(hcPartyId))
+
+        val f = Filters.UnionFilter(hcPartyIds.map { hcpId ->
+            Filters.UnionFilter(sfks.map { k ->
                 Filters.UnionFilter(cdItems.map { cd ->
-                    ServiceByHcPartyTagCodeDateFilter(hcPartyId, k, "CD-ITEM", cd, null, null, null, null)
+                    ServiceByHcPartyTagCodeDateFilter(hcpId, k, "CD-ITEM", cd, null, null, null, null)
                 })
             })
+        })
 
         var services = contactLogic?.getServices(filters?.resolve(f))?.filter { s ->
             s.endOfLife == null && //Not end of lifed
-                !((((s.status ?: 0) and 1) != 0) || s.tags?.any { it.type == "CD-LIFECYCLE" && it.code == "inactive" } ?: false) //Inactive
+                !((((s.status ?: 0) and 1) != 0) || s.tags?.any { it.type == "CD-LIFECYCLE" && (it.code == "inactive" || it.code == "stopped") } ?: false) //Inactive
                 && (s.content.values.any { null != (it.binaryValue ?: it.booleanValue ?: it.documentId ?: it.instantValue ?: it.measureValue ?: it.medicationValue) || it.stringValue?.length ?: 0 > 0 } || s.encryptedContent?.length ?: 0 > 0 || s.encryptedSelf?.length ?: 0 > 0) //And content
         }
 

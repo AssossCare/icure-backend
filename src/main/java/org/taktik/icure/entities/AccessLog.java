@@ -35,6 +35,7 @@ public class AccessLog extends StoredICureDocument implements Encryptable  {
 
 	public static final String USER_ACCESS = "USER_ACCESS";
 	public static final String COMPUTER_ACCESS = "COMPUTER_ACCESS";
+    public static final String LOGIN_ACCESS = "LOGIN_ACCESS";
 
     @Deprecated
     protected String patientId;
@@ -46,6 +47,7 @@ public class AccessLog extends StoredICureDocument implements Encryptable  {
     protected String accessType;
     protected String user;
     protected String detail;
+    protected String objectId;
 
     public AccessLog() {
         super();
@@ -94,15 +96,11 @@ public class AccessLog extends StoredICureDocument implements Encryptable  {
         this.detail = detail;
     }
 
-    private String encryptedSelf;
-    @Override
-    public String getEncryptedSelf() {
-        return encryptedSelf;
+    public String getObjectId() {
+        return objectId;
     }
 
-    @Override
-    public void setEncryptedSelf(String encryptedSelf) {
-        this.encryptedSelf = encryptedSelf;
+    public void setObjectId(String objectId) {
+        this.objectId = objectId;
     }
-
 }
